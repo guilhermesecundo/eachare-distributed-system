@@ -1,4 +1,4 @@
-package src.models;
+package models;
 
 public class Clock {
     
