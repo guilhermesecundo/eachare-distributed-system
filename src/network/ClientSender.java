@@ -1,5 +1,9 @@
 package network;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.Socket;
 import java.util.Iterator;
 import java.util.Scanner;
 import models.*;
@@ -13,7 +17,7 @@ public class ClientSender implements Runnable {
         this.scanner = new Scanner(System.in);
     }
 
-    public void Menu(){        
+    public void Menu() {
         int option;
         do {
             System.out.println("Escolha um comando:");
@@ -46,28 +50,14 @@ public class ClientSender implements Runnable {
         } while (option != 9);
     }
 
-
     @Override
     public void run() {
         // adicionar logica para enviar as mensagens
 
-        Menu(); //Talvez faça o menu só estar aqui nao como funçao
+        Menu(); // Talvez faça o menu só estar aqui nao como funçao
 
-        //Por ora deixei comentado, tava destruindo minha extensao
-        /* try (Socket socket = new Socket(address, port)) {
-            OutputStream output = socket.getOutputStream();
-
-            // - exemplo: envio de uma mensagem HELLO
-            String message = "HELLO";
-            output.write(message.getBytes());
-            System.out.println("Mensagem enviada: " + message);
-
-        } catch (IOException e) {
-            System.err.println("Erro ao enviar mensagem: " + e.getMessage());
-        } */
     }
 
-    
     private void listarPeers() {
         System.out.println("Lista de peers:");
         System.out.println("    [0] voltar para o menu anterior");
@@ -75,21 +65,25 @@ public class ClientSender implements Runnable {
         Iterator<Peer> iterator = client.getNeighborList().iterator();
 
         int counter = 0;
-        while(iterator.hasNext()){
+        while (iterator.hasNext()) {
             Peer p = iterator.next();
-            System.out.println("    ["+ counter+1 +"] " + p.getAddress() + p.getPort());
+            System.out.println("    [" + counter + 1 + "] " + p.getAddress() + p.getPort()); // esse counter+1 funciona?
             counter++;
         }
         System.out.print(">");
         int option = scanner.nextInt();
 
-        if(option == 0){
+        if (option == 0) {
             return;
         }
 
-        if(option > 0 && option <= counter){
-            //Envia mensagem para endereço encontrado em option (algo me parece estranho)
+        if (option > 0 && option <= counter) {
+            // Envia mensagem para endereço encontrado em option (algo me parece estranho)
         }
+    }
+
+    private void enviarMensagemHELLO() { // Tem que enviar a mensagem HELLO para anunciar a presenca do peer na rede
+
     }
 
     private void obterPeers() {
@@ -97,25 +91,67 @@ public class ClientSender implements Runnable {
     }
 
     private void listarArquivosLocais() {
+        File folder = client.getFolder();
+        if (folder.isDirectory()) {
+            File[] files = folder.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    System.out.println(file.getName());
+                }
+            } else {
+                System.out.println("O diretorio está vazio.");
+            }
+        } else {
+            System.out.println("Diretorio invalido.");
+        }
+    }
 
-    }
-    
     private void buscarArquivos() {
-        //Ainda nao sera implementado
+        // Ainda nao sera implementado
     }
-    
+
     private void exibirEstatisticas() {
-        //Ainda nao sera implementado
+        // Ainda nao sera implementado
     }
 
     private void alterarTamanhoChunk() {
-        //Ainda nao sera implementado
+        // Ainda nao sera implementado
     }
 
     private void sair() {
-        
+
+        client.updateClock();
+        System.out.println("=> Atualizando relógio para " + client.getClock());
+
+        for (Peer peer : client.getNeighborList()) {
+            if (peer.getStatus().equals("ONLINE")) {
+
+                String message = String.format("%s:%d %d BYE\n", peer.getAddress(), client.getPort(),
+                        client.getClock());
+
+                try (Socket socket = new Socket(peer.getAddress(), peer.getPort())) {
+                    OutputStream output = socket.getOutputStream();
+
+                    output.write(message.getBytes());
+                    System.out.println("Encaminhando mensagem \"" + message.trim() + "\" para " + peer.getAddress()
+                            + ":" + peer.getPort());
+
+                    peer.setStatus("OFFLINE");
+                    System.out.println(
+                            "Atualizando peer " + peer.getAddress() + ":" + peer.getPort() + " status OFFLINE");
+
+                } catch (IOException e) {
+                    peer.setStatus("OFFLINE");
+                    System.err.println("Erro ao enviar mensagem para " + peer.getAddress() + ":" + peer.getPort() + ": "
+                            + e.getMessage());
+                }
+            }
+        }
+
+        System.out.println("Saindo...");
+        System.exit(0);
     }
 
 }
 
-//TODO: processar mensagens,atualizar lista de peers etc
+// TODO: processar mensagens,atualizar lista de peers etc

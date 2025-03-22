@@ -20,12 +20,32 @@ public class Client {
         this.neighborList = neighborList;
     }
 
-    
+    public File getFolder(){
+        return this.folder;
+    }
     public int getPort(){
         return this.port;
+    }
+
+    public Clock getClock(){
+        return this.getClock();
+    }
+
+    public void updateClock(){
+        this.updateClock();
     }
 
     public LinkedList<Peer> getNeighborList(){
         return neighborList;
     }
+
+    public void addPeer(Peer peer) {
+        neighborList.add(peer);
+    }
+    
+    public void removePeer(Peer peer) {
+        neighborList.remove(peer);
+    }
+
+   
 }
