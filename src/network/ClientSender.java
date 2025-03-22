@@ -1,37 +1,121 @@
 package network;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.Socket;
+import java.util.Iterator;
+import java.util.Scanner;
+import models.*;
 
 public class ClientSender implements Runnable {
-    private String address;
-    private int port;
-    private String neighbors;
+    private final Client client;
+    private final Scanner scanner;
 
-    public ClientSender(String address, int port, String neighbors) {
-        this.address = address;
-        this.port = port;
-        this.neighbors = neighbors;
+    public ClientSender(Client client) {
+        this.client = client;
+        this.scanner = new Scanner(System.in);
+    }
+
+    public void Menu(){        
+        int option;
+        do {
+            System.out.println("Escolha um comando:");
+            System.out.println("    [1] Listar peers");
+            System.out.println("    [2] Obter peers");
+            System.out.println("    [3] Listar arquivos locais");
+            System.out.println("    [4] Buscar arquivos");
+            System.out.println("    [5] Exibir estatísticas");
+            System.out.println("    [6] Alterar tamanho de chunk");
+            System.out.println("    [9] Sair");
+            System.out.print(">");
+
+            while (!scanner.hasNextInt()) {
+                System.out.println("Entrada inválida. Digite um número.");
+                scanner.next();
+                System.out.print(">");
+            }
+            option = scanner.nextInt();
+
+            switch (option) {
+                case 1 -> listarPeers();
+                case 2 -> obterPeers();
+                case 3 -> listarArquivosLocais();
+                case 4 -> buscarArquivos();
+                case 5 -> exibirEstatisticas();
+                case 6 -> alterarTamanhoChunk();
+                case 9 -> sair();
+                default -> System.out.println("Opção inválida. Tente outra opção.");
+            }
+        } while (option != 9);
     }
 
 
     @Override
-        public void run() {
-            // adicionar logica para enviar as mensagens
+    public void run() {
+        // adicionar logica para enviar as mensagens
 
-            try (Socket socket = new Socket(address, port)) {
-                OutputStream output = socket.getOutputStream();
+        Menu(); //Talvez faça o menu só estar aqui nao como funçao
+
+        //Por ora deixei comentado, tava destruindo minha extensao
+        /* try (Socket socket = new Socket(address, port)) {
+            OutputStream output = socket.getOutputStream();
+
+            // - exemplo: envio de uma mensagem HELLO
+            String message = "HELLO";
+            output.write(message.getBytes());
+            System.out.println("Mensagem enviada: " + message);
+
+        } catch (IOException e) {
+            System.err.println("Erro ao enviar mensagem: " + e.getMessage());
+        } */
+    }
+
     
-                // - exemplo: envio de uma mensagem HELLO
-                String message = "HELLO";
-                output.write(message.getBytes());
-                System.out.println("Mensagem enviada: " + message);
-    
-            } catch (IOException e) {
-                System.err.println("Erro ao enviar mensagem: " + e.getMessage());
-            }
+    private void listarPeers() {
+        System.out.println("Lista de peers:");
+        System.out.println("    [0] voltar para o menu anterior");
+
+        Iterator<Peer> iterator = client.getNeighborList().iterator();
+
+        int counter = 0;
+        while(iterator.hasNext()){
+            Peer p = iterator.next();
+            System.out.println("    ["+ counter+1 +"] " + p.getAddress() + p.getPort());
+            counter++;
+        }
+        System.out.print(">");
+        int option = scanner.nextInt();
+
+        if(option == 0){
+            return;
+        }
+
+        if(option > 0 && option <= counter){
+            //Envia mensagem para endereço encontrado em option (algo me parece estranho)
         }
     }
 
-    //TODO: processar mensagens,atualizar lista de peers etc
+    private void obterPeers() {
+
+    }
+
+    private void listarArquivosLocais() {
+
+    }
+    
+    private void buscarArquivos() {
+        //Ainda nao sera implementado
+    }
+    
+    private void exibirEstatisticas() {
+        //Ainda nao sera implementado
+    }
+
+    private void alterarTamanhoChunk() {
+        //Ainda nao sera implementado
+    }
+
+    private void sair() {
+        
+    }
+
+}
+
+//TODO: processar mensagens,atualizar lista de peers etc
