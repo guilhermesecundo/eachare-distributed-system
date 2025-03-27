@@ -1,6 +1,8 @@
 package models;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.util.LinkedList;
 
 public class Client {
@@ -18,6 +20,23 @@ public class Client {
         this.folder = folder;
         this.clock = clock;
         this.neighborList = neighborList;
+    }
+
+
+    //possivelmente mudar
+    public void sendMessage(Peer p, String type, String... extraArgs){
+        String message;
+        switch (type) {
+            case "HELLO" -> message = String.format("%s:%d %d %s", this.address, this.port, this.clock.getClock(), type); //FIXME: todos os clocks serao arrumados posteriormente
+            default -> throw new AssertionError("Mensagem com erro: " + type);
+        }
+
+        try {
+            PrintStream outPrintStream = new PrintStream(p.getSocket().getOutputStream());
+            outPrintStream.print(message);
+        } catch (IOException e) {
+            System.out.println("Nao enviou "); //TODO:Retirar dps
+        }
     }
 
     public File getFolder(){

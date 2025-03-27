@@ -4,8 +4,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.LinkedList;
 import models.*;
-import network.ClientSender;
-import network.ServerListener;
+import network.*;
 
 public class Main {
     public static void main(String[] args) {

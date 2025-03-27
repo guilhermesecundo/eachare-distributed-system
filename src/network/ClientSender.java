@@ -17,7 +17,8 @@ public class ClientSender implements Runnable {
         this.scanner = new Scanner(System.in);
     }
 
-    public void Menu() {
+    @Override
+    public void run() {
         int option;
         do {
             System.out.println("Escolha um comando:");
@@ -50,14 +51,6 @@ public class ClientSender implements Runnable {
         } while (option != 9);
     }
 
-    @Override
-    public void run() {
-        // adicionar logica para enviar as mensagens
-
-        Menu(); // Talvez faça o menu só estar aqui nao como funçao
-
-    }
-
     private void listarPeers() {
         System.out.println("Lista de peers:");
         System.out.println("    [0] voltar para o menu anterior");
@@ -67,7 +60,8 @@ public class ClientSender implements Runnable {
         int counter = 0;
         while (iterator.hasNext()) {
             Peer p = iterator.next();
-            System.out.println("    [" + counter + 1 + "] " + p.getAddress() + p.getPort()); // esse counter+1 funciona?
+            //  [1] 255.255.255.255:8000 ONLINE
+            System.out.println(String.format("    [%d] %s:%d %s", counter + 1, p.getAddress(), p.getPort(), p.getStatus())); // esse counter+1 funciona? -- Provavelmente
             counter++;
         }
         System.out.print(">");
@@ -76,14 +70,14 @@ public class ClientSender implements Runnable {
         if (option == 0) {
             return;
         }
-
+        
         if (option > 0 && option <= counter) {
-            // Envia mensagem para endereço encontrado em option (algo me parece estranho)
+            // Envia mensagem para endereço encontrado em option (algo me parece estranho) 
+            //FIXME: race condition quando as opçoes sao mostradas e se depois disso mas antes de selecionar uma opçao, a lista de peers ser alterada, a option pode nao ser mais o mesmo
+
+            Peer p = client.getNeighborList().get(counter); 
+            client.sendMessage(p, "HELLO", "");
         }
-    }
-
-    private void enviarMensagemHELLO() { // Tem que enviar a mensagem HELLO para anunciar a presenca do peer na rede
-
     }
 
     private void obterPeers() {
@@ -153,5 +147,3 @@ public class ClientSender implements Runnable {
     }
 
 }
-
-// TODO: processar mensagens,atualizar lista de peers etc

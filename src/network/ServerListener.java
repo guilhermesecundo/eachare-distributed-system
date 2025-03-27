@@ -19,11 +19,16 @@ public class ServerListener implements Runnable {
 
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                System.out.println("Conexao recebida de: " + clientSocket.getInetAddress());
+                System.out.println("Conexao recebida de: " + clientSocket.getInetAddress().toString());
 
-                // (talvez) criar uma nova thread para lidar com a conexão
-                //Peer peer = new Peer(?, ?);
-                //peer.setSocket(clientSocket);
+                /* 
+                Peer peer = new Peer(?, ?);
+                peer.setSocket(clientSocket);
+                this.client.addPeer(peer);
+                MessageListener messageListener = new MessageListener(this.client, clientSocket);
+                Thread listenerThread = new Thread(serverListener);
+                serverThread.start(); 
+                */
             }
         } catch (IOException e) {
             System.err.println("Erro ao iniciar o servidor: " + e.getMessage());
