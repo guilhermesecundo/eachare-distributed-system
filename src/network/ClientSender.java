@@ -81,7 +81,19 @@ public class ClientSender implements Runnable {
     }
 
     private void obterPeers() {
+ 
+        for (Peer peer : client.getNeighborList()) {
+            try {
+                client.sendMessage(peer, "GET_PEERS");
 
+                peer.setStatus("ONLINE");
+                System.out.println("Atualizando peer " + peer.getAddress() + ":" + peer.getPort() + " status ONLINE");
+
+            } catch (Exception e) {
+                peer.setStatus("OFFLINE");
+                System.out.println("Atualizando peer " + peer.getAddress() + ":" + peer.getPort() + " status OFFLINE");
+            }
+        }
     }
 
     private void listarArquivosLocais() {
@@ -113,37 +125,33 @@ public class ClientSender implements Runnable {
     }
 
     private void sair() {
-
+ 
         client.updateClock();
         System.out.println("=> Atualizando relógio para " + client.getClock());
 
         for (Peer peer : client.getNeighborList()) {
             if (peer.getStatus().equals("ONLINE")) {
 
-                String message = String.format("%s:%d %d BYE\n", peer.getAddress(), client.getPort(),
-                        client.getClock());
-
-                try (Socket socket = new Socket(peer.getAddress(), peer.getPort())) {
-                    OutputStream output = socket.getOutputStream();
-
-                    output.write(message.getBytes());
-                    System.out.println("Encaminhando mensagem \"" + message.trim() + "\" para " + peer.getAddress()
-                            + ":" + peer.getPort());
+                try {
+                    client.sendMessage(peer, "BYE");
 
                     peer.setStatus("OFFLINE");
                     System.out.println(
                             "Atualizando peer " + peer.getAddress() + ":" + peer.getPort() + " status OFFLINE");
 
-                } catch (IOException e) {
+                
+                } catch (Exception e) {
+                    System.err.println("Erro ao enviar BYE para " + peer.getAddress() +
+                            ":" + peer.getPort() + ": " + e.getMessage());
                     peer.setStatus("OFFLINE");
-                    System.err.println("Erro ao enviar mensagem para " + peer.getAddress() + ":" + peer.getPort() + ": "
-                            + e.getMessage());
+                  
                 }
             }
         }
-
         System.out.println("Saindo...");
         System.exit(0);
+
     }
 
-}
+} 
+    
