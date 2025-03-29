@@ -25,8 +25,7 @@ public class Client {
     }
 
     // possivelmente mudar
-    // alterei esta funcao para suportar outros tipos de mensagens (HELLO,
-    // GET_PEERS, PEER_LIST...)
+    // alterei esta funcao para suportar outros tipos de mensagens (HELLO, BYE...
     public void sendMessage(Peer p, String type, String... extraArgs) {
         this.clock.updateClock();
         System.out.println("=> Atualizando relógio para " + this.clock.getClock());
@@ -42,6 +41,15 @@ public class Client {
         } catch (IOException e) {
             System.out.println("Nao enviou "); // TODO:Retirar dps
         }
+    }
+
+    public Peer findPeer(String address, int port) {
+        for (Peer peer : neighborList) {
+            if (peer.getAddress().equals(address) && peer.getPort() == port) {
+                return peer;
+            }
+        }
+        return null;
     }
 
     public File getFolder() {
