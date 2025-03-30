@@ -47,8 +47,7 @@ public class Main {
         
         LinkedList<Peer> neighborList = readNeighbors(neighborsFile);
 
-        Clock clock = new Clock();
-        Client client = new Client(address, portNumber, neighborsFile, folder, clock, neighborList);
+        Client client = new Client(address, portNumber, neighborsFile, folder, neighborList);
         
         
         try {
@@ -56,8 +55,8 @@ public class Main {
             Thread serverThread = new Thread(serverListener);
             serverThread.start();
 
-            ClientSender clientSender = new ClientSender(client);
-            Thread clientThread = new Thread(clientSender);
+            ClientMenu clientMenu = new ClientMenu(client);
+            Thread clientThread = new Thread(clientMenu);
             clientThread.start();
 
             serverThread.join();

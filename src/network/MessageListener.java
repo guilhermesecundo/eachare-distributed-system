@@ -23,21 +23,22 @@ public class MessageListener implements Runnable {
             while ((message = reader.readLine()) != null) { // Le ate o null
                 // TODO: fazer algo com message
 
-                String[] menssageParts = message.split(" ");
-                if (menssageParts.length < 3) {
+                String[] messageParts = message.split(" ");
+                if (messageParts.length < 3) {
                     System.err.println("Erro ao ler mensagem");
                     continue;
 
                 }
 
-                String origin = menssageParts[0];
-                String type = menssageParts[2];
+                String origin = messageParts[0];
+                String type = messageParts[2];
                 Peer sender = createPeerFromAddress(origin);
-
+                
                 if (client.findPeer(sender.getAddress(), sender.getPort()) == null) {
                     client.addPeer(sender);
                 }
-            //separei o envio do recebimento de mensagens, aqui ele so recebe e processa a mensagem
+
+                //separei o envio do recebimento de mensagens, aqui ele so recebe e processa a mensagem
                 switch (type) {
                     case "HELLO":
                         updatePeerStatus(sender, "ONLINE");
@@ -47,7 +48,7 @@ public class MessageListener implements Runnable {
                         sendPeerListTo(sender);
                         break;
                     case "PEER_LIST":
-                        appendList(menssageParts);
+                        appendList(messageParts);
                         break;
                     case "BYE":
                         updatePeerStatus(sender, "OFFLINE");
@@ -99,7 +100,7 @@ public class MessageListener implements Runnable {
 
         for (Peer peer : client.getNeighborList()) {
             if (!peer.equals(sender)) {
-                peerList.append(peer.getAddress()).append(":").append(peer.getPort()).append(":")
+                peerList.append(peer.getAddress()).append(":").append(peer.getPort()).append(":") //Ta porra KKKKKKKKKKKKK
                         .append(peer.getStatus()).append(":0 ");
                 count++;
             }

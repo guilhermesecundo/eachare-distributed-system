@@ -1,18 +1,15 @@
 package network;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.Socket;
 import java.util.Iterator;
 import java.util.Scanner;
 import models.*;
 
-public class ClientSender implements Runnable {
+public class ClientMenu implements Runnable {
     private final Client client;
     private final Scanner scanner;
 
-    public ClientSender(Client client) {
+    public ClientMenu(Client client) {
         this.client = client;
         this.scanner = new Scanner(System.in);
     }
@@ -61,7 +58,7 @@ public class ClientSender implements Runnable {
         while (iterator.hasNext()) {
             Peer p = iterator.next();
             //  [1] 255.255.255.255:8000 ONLINE
-            System.out.println(String.format("    [%d] %s:%d %s", counter + 1, p.getAddress(), p.getPort(), p.getStatus())); // esse counter+1 funciona? -- Provavelmente
+            System.out.println(String.format("    [%d] %s:%d %s", counter + 1, p.getAddress(), p.getPort(), p.getStatus()));
             counter++;
         }
         System.out.print(">");
@@ -72,9 +69,6 @@ public class ClientSender implements Runnable {
         }
         
         if (option > 0 && option <= counter) {
-            // Envia mensagem para endereço encontrado em option (algo me parece estranho) 
-            //FIXME: race condition quando as opçoes sao mostradas e se depois disso mas antes de selecionar uma opçao, a lista de peers ser alterada, a option pode nao ser mais o mesmo
-
             Peer p = client.getNeighborList().get(counter); 
             client.sendMessage(p, "HELLO", "");
         }

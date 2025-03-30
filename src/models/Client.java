@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.LinkedList;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class Client {
     private String address;
@@ -13,15 +14,16 @@ public class Client {
     private File folder;
     private Clock clock;
     private LinkedList<Peer> neighborList;
+    private LinkedBlockingQueue<Message> messageList;
 
-    public Client(String address, int port, File neighborsFile, File folder, Clock clock,
-            LinkedList<Peer> neighborList) {
+    public Client(String address, int port, File neighborsFile, File folder, LinkedList<Peer> neighborList) {
         this.address = address;
         this.port = port;
         this.neighborsFile = neighborsFile;
         this.folder = folder;
-        this.clock = clock;
         this.neighborList = neighborList;
+        this.clock = new Clock();
+        this.messageList = new LinkedBlockingQueue<Message>();
     }
 
     // possivelmente mudar
@@ -80,4 +82,7 @@ public class Client {
         neighborList.remove(peer);
     }
 
+    public LinkedBlockingQueue getMessageList(){
+        return this.messageList;
+    }
 }
