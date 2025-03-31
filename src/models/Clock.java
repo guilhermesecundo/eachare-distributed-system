@@ -11,7 +11,7 @@ public class Clock {
         return this.clock;
     }
 
-    public void updateClock(){
-        this.clock++;
+    public int updateClock(){
+        return this.clock++;
     }
 }

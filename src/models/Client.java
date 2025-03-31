@@ -26,23 +26,16 @@ public class Client {
         this.messageList = new LinkedBlockingQueue<Message>();
     }
 
-    // possivelmente mudar
     // alterei esta funcao para suportar outros tipos de mensagens (HELLO, BYE...
-    public void sendMessage(Peer p, String type, String... extraArgs) {
-        this.clock.updateClock();
-        System.out.println("=> Atualizando relógio para " + this.clock.getClock());
-
-        String message = String.format("%s:%d %d %s\n", this.address, this.port, this.clock.getClock(), type); //FIXME: todos os clocks serao arrumados posteriormente
-
-        System.out.println(
-                "Encaminhando mensagem \"" + message.trim() + "\" para " + p.getAddress() + ":" + p.getPort());
-
+    public void addMessage(Peer p, String type, LinkedList<String> extraArgs) {
+        Message message = new Message(p, type, extraArgs);
         try {
-            PrintStream outPrintStream = new PrintStream(p.getSocket().getOutputStream());
-            outPrintStream.print(message);
-        } catch (IOException e) {
-            System.out.println("Nao enviou "); // TODO:Retirar dps
+            this.messageList.put(message);
+        } catch (InterruptedException ex) {
+            ex.printStackTrace();
         }
+
+        
     }
 
     public Peer findPeer(String address, int port) {
@@ -56,6 +49,10 @@ public class Client {
 
     public File getFolder() {
         return this.folder;
+    }
+
+    public String getAddress(){
+        return this.address;
     }
 
     public int getPort() {
@@ -85,4 +82,5 @@ public class Client {
     public LinkedBlockingQueue getMessageList(){
         return this.messageList;
     }
+
 }

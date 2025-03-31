@@ -18,15 +18,18 @@ public class ClientMenu implements Runnable {
     public void run() {
         int option;
         do {
-            System.out.println("Escolha um comando:");
-            System.out.println("    [1] Listar peers");
-            System.out.println("    [2] Obter peers");
-            System.out.println("    [3] Listar arquivos locais");
-            System.out.println("    [4] Buscar arquivos");
-            System.out.println("    [5] Exibir estatísticas");
-            System.out.println("    [6] Alterar tamanho de chunk");
-            System.out.println("    [9] Sair");
-            System.out.print(">");
+            System.out.print(
+                """
+                Escolha um comando:
+                    [1] Listar peers
+                    [2] Obter peers
+                    [3] Listar arquivos locais
+                    [4] Buscar arquivos
+                    [5] Exibir estatísticas
+                    [6] Alterar tamanho de chunk
+                    [9] Sair
+                >
+                """);
 
             while (!scanner.hasNextInt()) {
                 System.out.println("Entrada inválida. Digite um número.");
@@ -49,19 +52,19 @@ public class ClientMenu implements Runnable {
     }
 
     private void listarPeers() {
-        System.out.println("Lista de peers:");
-        System.out.println("    [0] voltar para o menu anterior");
+        String message = "Lista de peers: \n    [0] voltar para o menu anterior\n";
 
         Iterator<Peer> iterator = client.getNeighborList().iterator();
 
         int counter = 0;
         while (iterator.hasNext()) {
             Peer p = iterator.next();
+            
             //  [1] 255.255.255.255:8000 ONLINE
-            System.out.println(String.format("    [%d] %s:%d %s", counter + 1, p.getAddress(), p.getPort(), p.getStatus()));
+            message = message + String.format("    [%d] %s:%d %s\n", counter + 1, p.getAddress(), p.getPort(), p.getStatus());
             counter++;
         }
-        System.out.print(">");
+        System.out.print(message + ">");
         int option = scanner.nextInt();
 
         if (option == 0) {
@@ -70,22 +73,21 @@ public class ClientMenu implements Runnable {
         
         if (option > 0 && option <= counter) {
             Peer p = client.getNeighborList().get(counter); 
-            client.sendMessage(p, "HELLO", "");
+            client.addMessage(p, "HELLO", null);
         }
     }
 
     private void obterPeers() {
- 
         for (Peer peer : client.getNeighborList()) {
             try {
-                client.sendMessage(peer, "GET_PEERS");
+                client.addMessage(peer, "GET_PEERS", null);
 
-                peer.setStatus("ONLINE");
-                System.out.println("Atualizando peer " + peer.getAddress() + ":" + peer.getPort() + " status ONLINE");
+                /* peer.setStatus("ONLINE");
+                System.out.println("Atualizando peer " + peer.getAddress() + ":" + peer.getPort() + " status ONLINE"); */
 
             } catch (Exception e) {
-                peer.setStatus("OFFLINE");
-                System.out.println("Atualizando peer " + peer.getAddress() + ":" + peer.getPort() + " status OFFLINE");
+                /* peer.setStatus("OFFLINE");
+                System.out.println("Atualizando peer " + peer.getAddress() + ":" + peer.getPort() + " status OFFLINE"); */
             }
         }
     }
@@ -127,7 +129,7 @@ public class ClientMenu implements Runnable {
             if (peer.getStatus().equals("ONLINE")) {
 
                 try {
-                    client.sendMessage(peer, "BYE");
+                    client.addMessage(peer, "BYE", null);
 
                     peer.setStatus("OFFLINE");
                     System.out.println(
