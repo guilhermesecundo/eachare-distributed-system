@@ -18,6 +18,11 @@ public class ClientMenu implements Runnable {
     public void run() {
         int option;
         do {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ex) {
+            }
+
             System.out.print(
                 """
                 Escolha um comando:

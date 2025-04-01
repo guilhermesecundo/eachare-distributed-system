@@ -37,23 +37,21 @@ public class MessageListener implements Runnable {
                     client.addPeer(sender);
                 }
 
+                System.out.println("Mensagem recebida: "+message);
+                //Clock
+
                 //separei o envio do recebimento de mensagens, aqui ele so recebe e processa a mensagem
                 switch (type) {
-                    case "HELLO":
+                    case "HELLO" -> {
                         updatePeerStatus(sender, "ONLINE");
-                        break;
-                    case "GET_PEERS":
+                    }
+                    case "GET_PEERS" -> {
                         updatePeerStatus(sender, "ONLINE");
                         sendPeerListTo(sender);
-                        break;
-                    case "PEER_LIST":
-                        appendList(messageParts);
-                        break;
-                    case "BYE":
-                        updatePeerStatus(sender, "OFFLINE");
-                        break;
-                    default:
-                        System.err.println("Tipo de mensagem desconhecido: " + type);
+                    }
+                    case "PEER_LIST" -> appendList(messageParts);
+                    case "BYE" -> updatePeerStatus(sender, "OFFLINE");
+                    default -> System.err.println("Tipo de mensagem desconhecido: " + type);
                 }
             }
         } catch (IOException e) {
@@ -112,6 +110,8 @@ public class MessageListener implements Runnable {
         Peer peer = client.findPeer(sender.getAddress(), sender.getPort());
         if (peer != null) {
             peer.setStatus(status);
+            //FIXME: possivel fixme
+            System.out.println("Atualizando peer " + peer.getAddress() + ":" + peer.getPort() + " status " + peer.getStatus());
         } else {
             System.err.println("Peer não encontrado: " + sender.getAddress() + ":" + sender.getPort());
         }

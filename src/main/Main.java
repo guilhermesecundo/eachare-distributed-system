@@ -62,11 +62,16 @@ public class Main {
             serverThread.start();
 
             ClientMenu clientMenu = new ClientMenu(client);
-            Thread clientThread = new Thread(clientMenu);
-            clientThread.start();
+            Thread clientMenuThread = new Thread(clientMenu);
+            clientMenuThread.start();
+
+            MessageHandler messageHandler = new MessageHandler(client);
+            Thread messageHandlerThread = new Thread(messageHandler);
+            messageHandlerThread.start();
 
             serverThread.join();
-            clientThread.join();
+            clientMenuThread.join();
+            messageHandlerThread.join();
 
         } catch (NumberFormatException e) {
             System.err.println("Porta inválida: " + port);

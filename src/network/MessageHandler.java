@@ -2,6 +2,7 @@ package network;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.Socket;
 import models.*;
 
 public class MessageHandler implements Runnable {
@@ -25,6 +26,14 @@ public class MessageHandler implements Runnable {
                 System.out.println(message.messageToString(address, port, clock));
 
                 Peer p = message.getAddressPeer();
+
+                if (p.getSocket() == null) {
+                    try {
+                        Socket socket = new Socket(p.getAddress(), p.getPort());
+                        p.setSocket(socket);
+                    } catch (IOException ex) {
+                    }
+                }
 
                 try {
                     PrintStream outPrintStream = new PrintStream(p.getSocket().getOutputStream());
