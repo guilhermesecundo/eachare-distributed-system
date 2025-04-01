@@ -27,7 +27,6 @@ public class MessageListener implements Runnable {
                 if (messageParts.length < 3) {
                     System.err.println("Erro ao ler mensagem");
                     continue;
-
                 }
 
                 String origin = messageParts[0];
@@ -106,7 +105,7 @@ public class MessageListener implements Runnable {
             }
         }
 
-        client.sendMessage(sender, "PEER_LIST", String.valueOf(count), peerList.toString().trim());
+        //client.addMessage(sender, "PEER_LIST", String.valueOf(count), peerList.toString().trim());
     }
 
     private void updatePeerStatus(Peer sender, String status) {

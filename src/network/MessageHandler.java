@@ -2,7 +2,6 @@ package network;
 
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.concurrent.LinkedBlockingQueue;
 import models.*;
 
 public class MessageHandler implements Runnable {
@@ -15,12 +14,11 @@ public class MessageHandler implements Runnable {
     @Override
     public void run(){
         try {
-            LinkedBlockingQueue<Message> list = client.getMessageList();
             String address = client.getAddress();
             int port = client.getPort();
             
             while (true) {
-                Message message = list.take();
+                Message message = client.getMessageList().take();
                 int clock = client.getClock().updateClock();
 
                 System.out.println("=> Atualizando relógio para " + clock);
@@ -36,7 +34,6 @@ public class MessageHandler implements Runnable {
                 }
             }
         } catch (InterruptedException e) {
-            e.printStackTrace();
         }
     }
 }

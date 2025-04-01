@@ -34,8 +34,6 @@ public class Client {
         } catch (InterruptedException ex) {
             ex.printStackTrace();
         }
-
-        
     }
 
     public Peer findPeer(String address, int port) {
@@ -79,7 +77,7 @@ public class Client {
         neighborList.remove(peer);
     }
 
-    public LinkedBlockingQueue getMessageList(){
+    public LinkedBlockingQueue<Message> getMessageList(){
         return this.messageList;
     }
 

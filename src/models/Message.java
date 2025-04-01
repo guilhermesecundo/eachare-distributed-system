@@ -49,7 +49,7 @@ public class Message {
     }
 
     public Peer getAddressPeer() {
-        return addressPeer;
+        return this.addressPeer;
     }
 
     public void setAddressPeer(Peer addressPeer) {

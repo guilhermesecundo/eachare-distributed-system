@@ -28,8 +28,7 @@ public class ClientMenu implements Runnable {
                     [5] Exibir estatísticas
                     [6] Alterar tamanho de chunk
                     [9] Sair
-                >
-                """);
+                >""");
 
             while (!scanner.hasNextInt()) {
                 System.out.println("Entrada inválida. Digite um número.");
@@ -72,7 +71,7 @@ public class ClientMenu implements Runnable {
         }
         
         if (option > 0 && option <= counter) {
-            Peer p = client.getNeighborList().get(counter); 
+            Peer p = client.getNeighborList().get(counter - 1); 
             client.addMessage(p, "HELLO", null);
         }
     }

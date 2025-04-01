@@ -1,3 +1,5 @@
+package main;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -29,16 +31,20 @@ public class Main {
             System.exit(1);
         }
         
+        for (String s : args) {
+            System.out.println(s);
+        }
+
         // Validar <vizinhos.txt>
         File neighborsFile = new File(args[1]);
-        if ( !(neighborsFile.exists() && neighborsFile.isFile()) ){
+        if ( !neighborsFile.exists() || !neighborsFile.isFile()){
             System.out.println("Erro: O arquivo de vizinhos não existe ou não é um arquivo válido.");
             System.exit(1);
         }
             
         // Validar <diretorio_compartilhado>
         File folder = new File(args[2]);
-        if (!(folder.isDirectory() && folder.exists())) {
+        if (!folder.isDirectory() || !folder.exists()) {
             System.out.println("Erro: O diretório compartilhado não existe ou não é um diretório válido.");
             System.exit(1);
         }
@@ -89,7 +95,7 @@ public class Main {
                     }
                     Peer p = new Peer(address, port);
                     list.add(p);
-                    System.out.println("Adicionando novo peer " + address + ":" + port + "status OFFLINE");
+                    System.out.println("Adicionando novo peer " + address + ":" + port + " status OFFLINE");
                 } else {
                     System.out.println("Erro: Formato inválido na linha -> " + line);
                 }
