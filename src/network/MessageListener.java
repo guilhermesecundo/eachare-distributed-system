@@ -21,11 +21,10 @@ public class MessageListener implements Runnable {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
             String message;
             while ((message = reader.readLine()) != null) { // Le ate o null
-                // TODO: fazer algo com message
 
                 String[] messageParts = message.split(" ");
                 if (messageParts.length < 3) {
-                    System.err.println("Erro ao ler mensagem");
+                    System.err.println("Erro ao ler mensagem"); //FIXME: tirar depois
                     continue;
                 }
 
@@ -36,22 +35,30 @@ public class MessageListener implements Runnable {
                 if (client.findPeer(sender.getAddress(), sender.getPort()) == null) {
                     client.addPeer(sender);
                 }
-
-                System.out.println("Mensagem recebida: "+message);
-                //Clock
-
-                //separei o envio do recebimento de mensagens, aqui ele so recebe e processa a mensagem
-                switch (type) {
-                    case "HELLO" -> {
-                        updatePeerStatus(sender, "ONLINE");
+                
+                
+                client.getPrintLock().lock();
+                client.getClock().getClockLock().lock();
+                try {
+                    System.out.println("    Mensagem recebida: \"" + message + "\"");
+                    System.out.println("    => Atualizando relógio para " + client.getClock().updateClock());
+    
+                    //separei o envio do recebimento de mensagens, aqui ele so recebe e processa a mensagem
+                    switch (type) {
+                        case "HELLO" -> {
+                            updatePeerStatus(sender, "ONLINE");
+                        }
+                        case "GET_PEERS" -> {
+                            updatePeerStatus(sender, "ONLINE");
+                            sendPeerListTo(sender);
+                        }
+                        case "PEER_LIST" -> appendList(messageParts);
+                        case "BYE" -> updatePeerStatus(sender, "OFFLINE");
+                        default -> System.err.println("Tipo de mensagem desconhecido: " + type);
                     }
-                    case "GET_PEERS" -> {
-                        updatePeerStatus(sender, "ONLINE");
-                        sendPeerListTo(sender);
-                    }
-                    case "PEER_LIST" -> appendList(messageParts);
-                    case "BYE" -> updatePeerStatus(sender, "OFFLINE");
-                    default -> System.err.println("Tipo de mensagem desconhecido: " + type);
+                } finally {
+                    client.getPrintLock().unlock();
+                    client.getClock().getClockLock().unlock();
                 }
             }
         } catch (IOException e) {
@@ -110,10 +117,9 @@ public class MessageListener implements Runnable {
         Peer peer = client.findPeer(sender.getAddress(), sender.getPort());
         if (peer != null) {
             peer.setStatus(status);
-            //FIXME: possivel fixme
-            System.out.println("Atualizando peer " + peer.getAddress() + ":" + peer.getPort() + " status " + peer.getStatus());
+            System.out.println("    Atualizando peer " + peer.getAddress() + ":" + peer.getPort() + " status " + peer.getStatus());
         } else {
-            System.err.println("Peer não encontrado: " + sender.getAddress() + ":" + sender.getPort());
+            System.err.println("    Peer não encontrado: " + sender.getAddress() + ":" + sender.getPort());
         }
     }
 

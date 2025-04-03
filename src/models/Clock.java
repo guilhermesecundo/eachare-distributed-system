@@ -1,10 +1,14 @@
 package models;
 
+import java.util.concurrent.locks.ReentrantLock;
+
 public class Clock {
     private int clock;
+    private ReentrantLock clockLock;
 
     public Clock(){
         this.clock = 0;
+        this.clockLock = new ReentrantLock();
     }
 
     public int getClock(){
@@ -12,6 +16,11 @@ public class Clock {
     }
 
     public int updateClock(){
-        return this.clock++;
+        this.clock += 1;
+        return this.clock;
+    }
+
+    public ReentrantLock getClockLock(){
+        return this.clockLock;
     }
 }

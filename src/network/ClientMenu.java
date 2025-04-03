@@ -16,23 +16,26 @@ public class ClientMenu implements Runnable {
 
     @Override
     public void run() {
-        int option;
+        int option = 0;
         do {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ex) {
+            if (!client.getMessageList().isEmpty()) {
+                try {
+                    Thread.sleep(500);
+                    continue;
+                } catch (InterruptedException ex) {
+                }
             }
-
+            
             System.out.print(
                 """
-                Escolha um comando:
-                    [1] Listar peers
-                    [2] Obter peers
-                    [3] Listar arquivos locais
-                    [4] Buscar arquivos
-                    [5] Exibir estatísticas
-                    [6] Alterar tamanho de chunk
-                    [9] Sair
+                \nEscolha um comando:
+                        [1] Listar peers
+                        [2] Obter peers
+                        [3] Listar arquivos locais
+                        [4] Buscar arquivos
+                        [5] Exibir estatísticas
+                        [6] Alterar tamanho de chunk
+                        [9] Sair
                 >""");
 
             while (!scanner.hasNextInt()) {
@@ -52,11 +55,12 @@ public class ClientMenu implements Runnable {
                 case 9 -> sair();
                 default -> System.out.println("Opção inválida. Tente outra opção.");
             }
+            
         } while (option != 9);
     }
 
     private void listarPeers() {
-        String message = "Lista de peers: \n    [0] voltar para o menu anterior\n";
+        String message = "Lista de peers: \n        [0] voltar para o menu anterior\n";
 
         Iterator<Peer> iterator = client.getNeighborList().iterator();
 
@@ -65,11 +69,18 @@ public class ClientMenu implements Runnable {
             Peer p = iterator.next();
             
             //  [1] 255.255.255.255:8000 ONLINE
-            message = message + String.format("    [%d] %s:%d %s\n", counter + 1, p.getAddress(), p.getPort(), p.getStatus());
+            message = message + String.format("        [%d] %s:%d %s\n", counter + 1, p.getAddress(), p.getPort(), p.getStatus());
             counter++;
         }
-        System.out.print(message + ">");
-        int option = scanner.nextInt();
+        int option = 0;
+
+        client.getPrintLock().lock();
+        try {
+            System.out.print(message + ">");
+            option = scanner.nextInt();
+        } finally{
+            client.getPrintLock().unlock();
+        }
 
         if (option == 0) {
             return;

@@ -2,16 +2,16 @@
 package models;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
 import java.util.LinkedList;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class Client {
     private String address;
     private int port;
     private File neighborsFile;
     private File folder;
+    private ReentrantLock printLock;
     private Clock clock;
     private LinkedList<Peer> neighborList;
     private LinkedBlockingQueue<Message> messageList;
@@ -24,6 +24,7 @@ public class Client {
         this.neighborList = neighborList;
         this.clock = new Clock();
         this.messageList = new LinkedBlockingQueue<Message>();
+        this.printLock = new ReentrantLock();
     }
 
     // alterei esta funcao para suportar outros tipos de mensagens (HELLO, BYE...
@@ -79,6 +80,10 @@ public class Client {
 
     public LinkedBlockingQueue<Message> getMessageList(){
         return this.messageList;
+    }
+
+    public ReentrantLock getPrintLock(){
+        return this.printLock;
     }
 
 }

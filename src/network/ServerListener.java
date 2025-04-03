@@ -21,12 +21,20 @@ public class ServerListener implements Runnable {
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("Conexao recebida de: " + clientSocket.getInetAddress().toString());  //FIXME:tirar dps
                 
+
+                System.out.println(clientSocket.getPort() + "reste");
                 String address = clientSocket.getInetAddress().toString();
                 address = address.substring(1); //removes the "/" from string
 
-                Peer peer = new Peer(address, clientSocket.getPort());
-                peer.setSocket(clientSocket);
-                this.client.addPeer(peer);
+                Peer p = client.findPeer(address, clientSocket.getPort());
+
+                if (p == null) {
+                    Peer peer = new Peer(address, clientSocket.getPort());
+                    peer.setSocket(clientSocket);
+                    this.client.addPeer(peer);
+                }else{
+                    p.setSocket(clientSocket);
+                }
 
                 MessageListener messageListener = new MessageListener(this.client, clientSocket);
                 Thread listenerThread = new Thread(messageListener);

@@ -16,7 +16,7 @@ public class Message {
     //Retorna no formato: Encaminhando mensagem <endereço>:<porta> <clock> <tipo> para <endereco:porta destino>
     public String messageToString(String address, int port, int clock){
         String message = String.format(
-            "Encaminhando mensagem \"%s:%d %d %s\" para %s:%d",
+            "   Encaminhando mensagem \"%s:%d %d %s\" para %s:%d",
             address,
             port,
             clock, 
@@ -56,4 +56,7 @@ public class Message {
         this.addressPeer = addressPeer;
     }
 
+    public String getMessageType(){
+        return this.messageType;
+    }
 }

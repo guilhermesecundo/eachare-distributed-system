@@ -12,6 +12,7 @@ public class Peer {
         this.address = address;
         this.port = port;
         this.status = "OFFLINE";
+        this.socket = null;
     }
 
     //getters e setter criados SEM EU PEDIR mas alguns deles vao ser necessarios entao deixarei todos por ora
@@ -39,12 +40,20 @@ public class Peer {
         this.status = status;
     }
 
+    public void changeStatus(){
+        if (this.status.equals("ONLINE")) {
+            this.status = "OFFLINE";
+        }else{
+            this.status = "ONLINE";
+        }
+    }
+
     public Socket getSocket() {
-        return socket;
+        return this.socket;
     }
 
     public void setSocket(Socket socket) {
         this.socket = socket;
     }
-    
+
 }
