@@ -1,16 +1,18 @@
 package network;
 
 import java.io.File;
-import java.util.Iterator;
 import java.util.Scanner;
+import java.util.concurrent.Semaphore;
 import models.*;
 
 public class ClientMenu implements Runnable {
     private final Client client;
     private final Scanner scanner;
+    private final Semaphore exitSemaphore;
 
-    public ClientMenu(Client client) {
+    public ClientMenu(Client client, Semaphore exitSemaphore) {
         this.client = client;
+        this.exitSemaphore = exitSemaphore;
         this.scanner = new Scanner(System.in);
     }
 
@@ -26,23 +28,29 @@ public class ClientMenu implements Runnable {
                 }
             }
             
-            System.out.print(
-                """
-                \nEscolha um comando:
-                        [1] Listar peers
-                        [2] Obter peers
-                        [3] Listar arquivos locais
-                        [4] Buscar arquivos
-                        [5] Exibir estatísticas
-                        [6] Alterar tamanho de chunk
-                        [9] Sair
-                >""");
+            try {
+                client.getPrintLock().lock();
+                System.out.print(
+                    """
+                    \nEscolha um comando:
+                            [1] Listar peers
+                            [2] Obter peers
+                            [3] Listar arquivos locais
+                            [4] Buscar arquivos
+                            [5] Exibir estatísticas
+                            [6] Alterar tamanho de chunk
+                            [9] Sair
+                    >""");
+            }finally {
+                client.getPrintLock().unlock();
+            }
 
             while (!scanner.hasNextInt()) {
-                System.out.println("Entrada inválida. Digite um número.");
+                System.out.println("    Entrada inválida. Digite um número.");
                 scanner.next();
                 System.out.print(">");
             }
+
             option = scanner.nextInt();
 
             switch (option) {
@@ -53,73 +61,74 @@ public class ClientMenu implements Runnable {
                 case 5 -> exibirEstatisticas();
                 case 6 -> alterarTamanhoChunk();
                 case 9 -> sair();
-                default -> System.out.println("Opção inválida. Tente outra opção.");
+                default -> System.out.println("    Opção inválida. Tente outra opção.");
             }
             
         } while (option != 9);
     }
 
     private void listarPeers() {
-        String message = "Lista de peers: \n        [0] voltar para o menu anterior\n";
-
-        Iterator<Peer> iterator = client.getNeighborList().iterator();
-
-        int counter = 0;
-        while (iterator.hasNext()) {
-            Peer p = iterator.next();
-            
-            //  [1] 255.255.255.255:8000 ONLINE
-            message = message + String.format("        [%d] %s:%d %s\n", counter + 1, p.getAddress(), p.getPort(), p.getStatus());
-            counter++;
-        }
-        int option = 0;
-
         client.getPrintLock().lock();
+        int counter = 0;
+        int option = 0;
+        
         try {
+            String message = "\nLista de peers: \n        [0] voltar para o menu anterior\n";
+            for (Peer p  : client.getNeighborList()) {
+                //  [1] 255.255.255.255:8000 ONLINE
+                message = message + String.format("        [%d] %s:%d %s\n", counter + 1, p.getAddress(), p.getPort(), p.getStatus());
+                counter++;
+            }
+            
             System.out.print(message + ">");
-            option = scanner.nextInt();
-        } finally{
+        }finally {
             client.getPrintLock().unlock();
         }
+
+        while (!scanner.hasNextInt()) {
+            System.out.println("    Entrada inválida. Digite um número.");
+            scanner.next();
+            System.out.print(">");
+        }
+
+        option = scanner.nextInt();
 
         if (option == 0) {
             return;
         }
         
         if (option > 0 && option <= counter) {
-            Peer p = client.getNeighborList().get(counter - 1); 
+            Peer p = client.getNeighborList().get(option - 1); 
             client.addMessage(p, "HELLO", null);
         }
     }
 
     private void obterPeers() {
         for (Peer peer : client.getNeighborList()) {
-            try {
-                client.addMessage(peer, "GET_PEERS", null);
-
-                /* peer.setStatus("ONLINE");
-                System.out.println("Atualizando peer " + peer.getAddress() + ":" + peer.getPort() + " status ONLINE"); */
-
-            } catch (Exception e) {
-                /* peer.setStatus("OFFLINE");
-                System.out.println("Atualizando peer " + peer.getAddress() + ":" + peer.getPort() + " status OFFLINE"); */
-            }
+            client.addMessage(peer, "GET_PEERS", null);
+            
         }
     }
 
     private void listarArquivosLocais() {
         File folder = client.getFolder();
-        if (folder.isDirectory()) {
-            File[] files = folder.listFiles();
-            if (files != null) {
-                for (File file : files) {
-                    System.out.println(file.getName());
+        client.getPrintLock().lock();
+        try {
+            if (folder.isDirectory()) {
+                System.out.println("\n");
+                File[] files = folder.listFiles();
+                if (files != null) {
+                    for (File file : files) {
+                        System.out.println(file.getName());
+                    }
+                } else {
+                    System.out.println("    O diretorio esta vazio.");
                 }
             } else {
-                System.out.println("O diretorio está vazio.");
+                System.out.println("    Diretorio invalido.");
             }
-        } else {
-            System.out.println("Diretorio invalido.");
+        }finally {
+            client.getPrintLock().unlock();
         }
     }
 
@@ -136,32 +145,20 @@ public class ClientMenu implements Runnable {
     }
 
     private void sair() {
- 
-        client.updateClock();
-        System.out.println("=> Atualizando relógio para " + client.getClock());
-
+        System.out.println("    Saindo...");
         for (Peer peer : client.getNeighborList()) {
             if (peer.getStatus().equals("ONLINE")) {
-
-                try {
-                    client.addMessage(peer, "BYE", null);
-
-                    peer.setStatus("OFFLINE");
-                    System.out.println(
-                            "Atualizando peer " + peer.getAddress() + ":" + peer.getPort() + " status OFFLINE");
-
-                
-                } catch (Exception e) {
-                    System.err.println("Erro ao enviar BYE para " + peer.getAddress() +
-                            ":" + peer.getPort() + ": " + e.getMessage());
-                    peer.setStatus("OFFLINE");
-                  
-                }
+                client.addMessage(peer, "BYE", null);
             }
         }
-        System.out.println("Saindo...");
-        System.exit(0);
-
+        if (client.getMessageList().isEmpty()) {
+            System.exit(0);
+        }
+        try {
+            exitSemaphore.acquire();
+            System.exit(0);
+        } catch (InterruptedException ex) {
+        }
     }
 
 } 

@@ -4,11 +4,11 @@ import java.util.LinkedList;
 
 public class Message {
     private Peer addressPeer;
-    private String messageType;
-    private LinkedList<String> extraArgs;
+    private final String messageType;
+    private final LinkedList<String> extraArgs;
 
-    public Message(Peer addresPeer, String messageType, LinkedList<String> extraArgs) {
-        this.addressPeer = addresPeer;
+    public Message(Peer addressPeer, String messageType, LinkedList<String> extraArgs) {
+        this.addressPeer = addressPeer;
         this.messageType = messageType;
         this.extraArgs = extraArgs;
     }
@@ -16,14 +16,18 @@ public class Message {
     //Retorna no formato: Encaminhando mensagem <endereço>:<porta> <clock> <tipo> para <endereco:porta destino>
     public String messageToString(String address, int port, int clock){
         String message = String.format(
-            "   Encaminhando mensagem \"%s:%d %d %s\" para %s:%d",
+            "    Encaminhando mensagem \"%s:%d %d %s",
             address,
             port,
             clock, 
-            this.messageType, 
-            addressPeer.getAddress(), 
-            addressPeer.getPort()
+            this.messageType
         );
+        if (extraArgs != null) {
+            for (String arg : extraArgs) {
+                message += " " +arg;
+            }
+        }
+        message += String.format("\" para %s:%d", addressPeer.getAddress(), addressPeer.getPort());
         return message;
     }
     
@@ -38,11 +42,9 @@ public class Message {
         );
 
         if (extraArgs != null) {
-            message += "[ ";
             for (String arg : extraArgs) {
-                message += arg + " "; 
+                message += " " + arg; 
             }
-            message += "]";
         }
         message += "\n";
         return message;

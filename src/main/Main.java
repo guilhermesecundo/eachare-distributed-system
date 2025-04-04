@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.LinkedList;
+import java.util.concurrent.Semaphore;
 import models.*;
 import network.*;
 
@@ -31,10 +32,6 @@ public class Main {
             System.exit(1);
         }
         
-        for (String s : args) {
-            System.out.println(s);
-        }
-
         // Validar <vizinhos.txt>
         File neighborsFile = new File(args[1]);
         if ( !neighborsFile.exists() || !neighborsFile.isFile()){
@@ -57,15 +54,17 @@ public class Main {
         
         
         try {
+            Semaphore exitSemaphore = new Semaphore(0);
+
             ServerListener serverListener = new ServerListener(client);
             Thread serverThread = new Thread(serverListener);
             serverThread.start();
 
-            ClientMenu clientMenu = new ClientMenu(client);
+            ClientMenu clientMenu = new ClientMenu(client, exitSemaphore);
             Thread clientMenuThread = new Thread(clientMenu);
             clientMenuThread.start();
 
-            MessageHandler messageHandler = new MessageHandler(client);
+            MessageHandler messageHandler = new MessageHandler(client, exitSemaphore);
             Thread messageHandlerThread = new Thread(messageHandler);
             messageHandlerThread.start();
 

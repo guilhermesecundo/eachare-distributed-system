@@ -4,6 +4,7 @@ package models;
 import java.io.File;
 import java.util.LinkedList;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Client {
@@ -11,8 +12,11 @@ public class Client {
     private int port;
     private File neighborsFile;
     private File folder;
+
     private ReentrantLock printLock;
+    private Semaphore responseSemaphore;
     private Clock clock;
+
     private LinkedList<Peer> neighborList;
     private LinkedBlockingQueue<Message> messageList;
 
@@ -21,10 +25,13 @@ public class Client {
         this.port = port;
         this.neighborsFile = neighborsFile;
         this.folder = folder;
-        this.neighborList = neighborList;
+
         this.clock = new Clock();
-        this.messageList = new LinkedBlockingQueue<Message>();
         this.printLock = new ReentrantLock();
+        this.responseSemaphore = new Semaphore(0); 
+
+        this.neighborList = neighborList;
+        this.messageList = new LinkedBlockingQueue<Message>();
     }
 
     // alterei esta funcao para suportar outros tipos de mensagens (HELLO, BYE...
@@ -48,6 +55,10 @@ public class Client {
 
     public File getFolder() {
         return this.folder;
+    }
+
+    public File getNeighborsFile(){
+        return this.neighborsFile;
     }
 
     public String getAddress(){
@@ -84,6 +95,10 @@ public class Client {
 
     public ReentrantLock getPrintLock(){
         return this.printLock;
+    }
+
+    public Semaphore getResponseSemaphore(){
+        return this.responseSemaphore;
     }
 
 }
