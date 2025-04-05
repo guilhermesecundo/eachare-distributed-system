@@ -30,7 +30,7 @@ public class MessageHandler implements Runnable {
 
                 
                 clock = client.getClock().updateClock();
-                System.out.println("\n    => Atualizando relógio para " + clock);
+                System.out.println("    => Atualizando relógio para " + clock);
                 System.out.println(message.messageToString(address, port, clock));
 
                 Peer p = message.getAddressPeer();
@@ -69,7 +69,7 @@ public class MessageHandler implements Runnable {
     private void verifyMessageStatus(String type, boolean status, Peer p){
         switch (type) {
             case "HELLO" -> {
-                updatePeerStatus(type, status, p);
+                updatePeerStatus(status, p);
             }
             case "GET_PEERS" -> {
                 //await response
@@ -83,12 +83,10 @@ public class MessageHandler implements Runnable {
                         client.getResponseSemaphore().acquire();
                         client.getPrintLock().lock();
                         client.getClock().getClockLock().lock();
-
-                        
                     } catch (InterruptedException ex) {
                     }
                 }
-                updatePeerStatus(type, status, p);
+                updatePeerStatus(status, p);
             }
             case "BYE" ->{
                 if (client.getMessageList().isEmpty()) {
@@ -98,9 +96,8 @@ public class MessageHandler implements Runnable {
         }
     }
 
-    private void updatePeerStatus(String type, boolean status, Peer p){
+    private void updatePeerStatus(boolean status, Peer p){
         String peerStatus = p.getStatus();
-        //Change the status
         if (("ONLINE".equals(peerStatus) && !status) || "OFFLINE".equals(peerStatus) && status) {
             p.changeStatus();
             System.out.println(String.format("    Atualizando peer %s:%d status %s", p.getAddress(), p.getPort(), p.getStatus()));

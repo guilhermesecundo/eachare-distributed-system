@@ -5,13 +5,13 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.LinkedList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import models.*;
 import network.*;
 
 public class Main {
     public static void main(String[] args) {
-
         if (args.length != 3) {
             System.out.println("Uso correto: ./eachare <endereco>:<porta> <vizinhos.txt> <diretorio_compartilhado>");
             System.exit(1);
@@ -48,26 +48,36 @@ public class Main {
         
         int portNumber = Integer.parseInt(port);
         
-        LinkedList<Peer> neighborList = readNeighbors(neighborsFile);
-
-        Client client = new Client(address, portNumber, neighborsFile, folder, neighborList);
+        
+        Client client = new Client(address, portNumber, neighborsFile, folder);
         
         
         try {
             Semaphore exitSemaphore = new Semaphore(0);
-
-            ServerListener serverListener = new ServerListener(client);
+            CountDownLatch latch = new CountDownLatch(1);
+            
+            //Starts server thread
+            ServerListener serverListener = new ServerListener(client, latch);
             Thread serverThread = new Thread(serverListener);
             serverThread.start();
-
+            
+            //Await serverSocket to be succesfully created
+            latch.await(); 
+            LinkedList<Peer> neighborsList = readNeighbors(neighborsFile);
+            client.setNeighborsList(neighborsList);
+            
+            //Starts menu thread
             ClientMenu clientMenu = new ClientMenu(client, exitSemaphore);
             Thread clientMenuThread = new Thread(clientMenu);
-            clientMenuThread.start();
-
+            
+            //Starts messageHandler thread
             MessageHandler messageHandler = new MessageHandler(client, exitSemaphore);
             Thread messageHandlerThread = new Thread(messageHandler);
+            
+            
+            clientMenuThread.start();
             messageHandlerThread.start();
-
+            
             serverThread.join();
             clientMenuThread.join();
             messageHandlerThread.join();
@@ -76,7 +86,6 @@ public class Main {
             System.err.println("Porta inválida: " + port);
             System.exit(1);
         } catch (InterruptedException e) {
-            System.err.println("Thread interrompida: " + e.getMessage());
         }
     }
 
@@ -106,6 +115,7 @@ public class Main {
             }
         } catch (IOException e) {
             System.out.println("Erro ao ler o arquivo: " + e.getMessage());
+            System.exit(1);
         }
         return list;
     }

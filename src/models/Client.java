@@ -8,19 +8,19 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Client {
-    private String address;
-    private int port;
-    private File neighborsFile;
-    private File folder;
+    private final String address;
+    private final int port;
+    private final File neighborsFile;
+    private final File folder;
 
-    private ReentrantLock printLock;
-    private Semaphore responseSemaphore;
-    private Clock clock;
+    private final ReentrantLock printLock;
+    private final Semaphore responseSemaphore;
+    private final Clock clock;
 
     private LinkedList<Peer> neighborList;
-    private LinkedBlockingQueue<Message> messageList;
+    private final LinkedBlockingQueue<Message> messageList;
 
-    public Client(String address, int port, File neighborsFile, File folder, LinkedList<Peer> neighborList) {
+    public Client(String address, int port, File neighborsFile, File folder) {
         this.address = address;
         this.port = port;
         this.neighborsFile = neighborsFile;
@@ -30,29 +30,32 @@ public class Client {
         this.printLock = new ReentrantLock();
         this.responseSemaphore = new Semaphore(0); 
 
-        this.neighborList = neighborList;
+        this.neighborList = null;
         this.messageList = new LinkedBlockingQueue<Message>();
     }
 
-    // alterei esta funcao para suportar outros tipos de mensagens (HELLO, BYE...
     public void addMessage(Peer p, String type, LinkedList<String> extraArgs) {
         Message message = new Message(p, type, extraArgs);
         try {
             this.messageList.put(message);
         } catch (InterruptedException ex) {
-            ex.printStackTrace();
         }
     }
 
     public Peer findPeer(String address, int port) {
-        for (Peer peer : neighborList) {
+        for (Peer peer : this.neighborList) {
             if (peer.getAddress().equals(address) && peer.getPort() == port) {
                 return peer;
             }
         }
         return null;
     }
-
+    
+    public void removePeer(Peer peer) {
+        neighborList.remove(peer);
+    }
+    
+    //Getters and Setters
     public File getFolder() {
         return this.folder;
     }
@@ -61,33 +64,35 @@ public class Client {
         return this.neighborsFile;
     }
 
+    
     public String getAddress(){
         return this.address;
     }
-
+    
     public int getPort() {
         return this.port;
     }
-
+    
     public Clock getClock() {
         return this.clock;
     }
-
+    
     public void updateClock() {
         this.clock.updateClock();
     }
-
+    
     public LinkedList<Peer> getNeighborList() {
         return neighborList;
     }
 
+    public void setNeighborsList(LinkedList<Peer> list){
+        this.neighborList = list;
+    }
+    
     public void addPeer(Peer peer) {
         neighborList.add(peer);
     }
 
-    public void removePeer(Peer peer) {
-        neighborList.remove(peer);
-    }
 
     public LinkedBlockingQueue<Message> getMessageList(){
         return this.messageList;

@@ -19,7 +19,6 @@ public class MessageListener implements Runnable {
         this.socket = socket;
     }
 
-    // Talvez precise mudar
     @Override
     public void run() {
         String message;
@@ -29,7 +28,6 @@ public class MessageListener implements Runnable {
             while ((message = reader.readLine()) != null) { // Le ate o null
                 String[] messageParts = message.split(" ");
                 if (messageParts.length < 3) {
-                    System.err.println("Erro ao ler mensagem"); //FIXME: tirar depois
                     continue;
                 }
 
@@ -53,10 +51,13 @@ public class MessageListener implements Runnable {
                 client.getClock().getClockLock().lock();
 
                 try {
-                    System.out.println("    Mensagem recebida: \"" + message + "\"");
+                    if ("PEER_LIST".equals(type)) {
+                        System.out.println("    Resposta recebida: \"" + message + "\"");
+                    }else{
+                        System.out.println("\n    Mensagem recebida: \"" + message + "\"");
+                    }
                     System.out.println("    => Atualizando relógio para " + client.getClock().updateClock());
     
-                    //separei o envio do recebimento de mensagens, aqui ele so recebe e processa a mensagem
                     switch (type) {
                         case "HELLO" -> {
                             updatePeerStatus(sender, "ONLINE");

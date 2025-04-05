@@ -4,19 +4,19 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class Clock {
     private int clock;
-    private ReentrantLock clockLock;
+    private final ReentrantLock clockLock;
 
     public Clock(){
         this.clock = 0;
         this.clockLock = new ReentrantLock();
     }
 
-    public int getClock(){
+    public int updateClock(){
+        this.clock += 1;
         return this.clock;
     }
 
-    public int updateClock(){
-        this.clock += 1;
+    public int getClock(){
         return this.clock;
     }
 

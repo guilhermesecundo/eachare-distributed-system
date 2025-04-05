@@ -14,8 +14,17 @@ public class Peer {
         this.status = "OFFLINE";
         this.socket = null;
     }
+    
+    public void changeStatus(){
+        if (this.status.equals("ONLINE")) {
+            this.status = "OFFLINE";
+        }else{
+            this.status = "ONLINE";
+        }
+    }
 
-    //getters e setter criados SEM EU PEDIR mas alguns deles vao ser necessarios entao deixarei todos por ora
+
+    //Getters and Setters
     public String getAddress() {
         return address;
     }
@@ -38,14 +47,6 @@ public class Peer {
 
     public void setStatus(String status) {
         this.status = status;
-    }
-
-    public void changeStatus(){
-        if (this.status.equals("ONLINE")) {
-            this.status = "OFFLINE";
-        }else{
-            this.status = "ONLINE";
-        }
     }
 
     public Socket getSocket() {
