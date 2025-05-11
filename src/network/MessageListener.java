@@ -25,16 +25,16 @@ public class MessageListener implements Runnable {
         boolean hasPeer = false;
         Peer sender = null;
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
-            while ((message = reader.readLine()) != null) { // Le ate o null
+            while ((message = reader.readLine()) != null) {
                 String[] messageParts = message.split(" ");
-                if (messageParts.length < 3) {
+                if (messageParts.length < 3)
                     continue;
-                }
 
                 String origin = messageParts[0];
-                String originParts[] = origin.split(":"); 
+                int receivedClock = Integer.parseInt(messageParts[1]);
+                String originParts[] = origin.split(":");
                 String type = messageParts[2];
-                
+
                 //Create a peer if its the first message and assigns it a socket
                 if (!hasPeer) {
                     sender = client.findPeer(originParts[0], Integer.parseInt(originParts[1]));
@@ -45,23 +45,30 @@ public class MessageListener implements Runnable {
                     sender.setSocket(this.socket);
                     hasPeer = true;
                 }
-                
-                
+
                 client.getPrintLock().lock();
                 client.getClock().getClockLock().lock();
 
                 try {
+                     
+                    int newClock = client.getClock().mergeClocks(receivedClock);
+                    System.out.println("    => Atualizando relógio para " + newClock);
+
+                     
+                    if (receivedClock > sender.getClock()) {
+                        sender.setClock(receivedClock);
+                    }
+
+                     
                     if ("PEER_LIST".equals(type)) {
                         System.out.println("    Resposta recebida: \"" + message + "\"");
-                    }else{
+                    } else {
                         System.out.println("\n    Mensagem recebida: \"" + message + "\"");
                     }
-                    System.out.println("    => Atualizando relógio para " + client.getClock().updateClock());
-    
+
+                
                     switch (type) {
-                        case "HELLO" -> {
-                            updatePeerStatus(sender, "ONLINE");
-                        }
+                        case "HELLO" -> updatePeerStatus(sender, "ONLINE");
                         case "GET_PEERS" -> {
                             updatePeerStatus(sender, "ONLINE");
                             sendPeerListTo(sender);
@@ -70,18 +77,17 @@ public class MessageListener implements Runnable {
                             appendList(messageParts);
                             client.getResponseSemaphore().release();
                         }
-                        case "BYE" -> {
-                            updatePeerStatus(sender, "OFFLINE");
-                        }
+                        case "BYE" -> updatePeerStatus(sender, "OFFLINE");
                         default -> System.err.println("Tipo de mensagem desconhecido: " + type);
                     }
+
                 } finally {
                     client.getPrintLock().unlock();
                     client.getClock().getClockLock().unlock();
                 }
             }
         } catch (IOException e) {
-            sender.setSocket(null);
+             
         } finally {
             closeConnection();
         }
@@ -102,39 +108,43 @@ public class MessageListener implements Runnable {
             return;
         }
 
-        //Add to neighbor file
+        // Add to neighbor file
         File f = client.getNeighborsFile();
-        
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(f, true))) {
             for (int i = 4; i < parts.length; i++) {
                 String[] peerParts = parts[i].split(":");
-                if (peerParts.length == 3) {
-                    System.err.println("Erro ao ler peer: " + parts[i]);
+                if (peerParts.length != 4) {
+                    System.err.println("Formato inválido do peer: " + parts[i]);
                     continue;
                 }
+
                 String address = peerParts[0];
                 int port = Integer.parseInt(peerParts[1]);
                 String status = peerParts[2];
-    
+                int peerClock = Integer.parseInt(peerParts[3]);
+
                 Peer p = client.findPeer(address, port);
-    
                 if (p != null) {
-                    updatePeerStatus(p, status);
-                    continue;
+                    // atualiza apenas se o relógio recebido for maior
+                    if (peerClock > p.getClock()) {
+                        p.setClock(peerClock);
+                        p.setStatus(status);
+                    }
+                } else {
+                    Peer peer = new Peer(address, port);
+                    peer.setStatus(status);
+                    peer.setClock(peerClock);
+                    client.addPeer(peer);
+                    System.out.printf("    Adicionando novo peer %s:%d status %s%n", address, port, status);
+                    writer.newLine();
+                    writer.write(address + ":" + port + ":" + status + ":" + peerClock);
                 }
-    
-                Peer peer = new Peer(address, port);
-                peer.setStatus(status);
-                client.addPeer(peer);
-                System.out.println(String.format("    Adicionando novo peer %s:%d status %s", peer.getAddress(), peer.getPort(), peer.getStatus()));
-                
-                String newPeer = peer.getAddress() + ":" + peer.getPort();
-                writer.newLine();
-                writer.write(newPeer);
             }
         } catch (IOException e) {
+
         }
     }
+
 
     private void sendPeerListTo(Peer sender) {
         LinkedList<String> peerList = new LinkedList<String>();
@@ -142,7 +152,7 @@ public class MessageListener implements Runnable {
 
         for (Peer peer : client.getNeighborList()) {
             if (!peer.equals(sender)) {
-                peerList.add(String.format("%s:%d:%s:%d", peer.getAddress(), peer.getPort(), peer.getStatus(), 0));
+                peerList.add(String.format("%s:%d:%s:%d", peer.getAddress(), peer.getPort(), peer.getStatus(),peer.getClock()));
                 count++;
             }
         }
@@ -152,13 +162,11 @@ public class MessageListener implements Runnable {
     }
 
     private void updatePeerStatus(Peer sender, String status) {
-        if (sender != null) {
-            String prevStatus = sender.getStatus();
-            if (!prevStatus.equals(status)) {
-                sender.setStatus(status);
-                System.out.println("    Atualizando peer " + sender.getAddress() + ":" + sender.getPort() + " status " + status);
-            }
-        } 
+        if (sender != null && !sender.getStatus().equals(status)) {
+            sender.setStatus(status);
+            System.out.printf("    Atualizando peer %s:%d status %s%n",
+                    sender.getAddress(), sender.getPort(), status);
+        }
     }
 
     private Peer createPeerFromAddress(String address, String port) {

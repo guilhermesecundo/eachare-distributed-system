@@ -16,6 +16,17 @@ public class Clock {
         return this.clock;
     }
 
+public int mergeClocks(int receivedClock) {
+        clockLock.lock();
+        try {
+            clock = Math.max(clock, receivedClock); // Atualiza para o máximo
+            clock++; // Incrementa após
+            return clock;
+        } finally {
+            clockLock.unlock();
+        }
+    }
+
     public int getClock(){
         return this.clock;
     }

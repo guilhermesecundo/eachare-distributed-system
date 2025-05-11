@@ -7,12 +7,14 @@ public class Peer {
     private int port;
     private String status;
     private Socket socket; 
+    private int clock;
     
     public Peer(String address, int port) {
         this.address = address;
         this.port = port;
         this.status = "OFFLINE";
         this.socket = null;
+        this.clock = 0;
     }
     
     public void changeStatus(){
@@ -55,6 +57,13 @@ public class Peer {
 
     public void setSocket(Socket socket) {
         this.socket = socket;
+    }
+    public int getClock() {
+        return clock;
+    }
+
+    public void setClock(int clock) {
+        this.clock = clock;
     }
 
 }
