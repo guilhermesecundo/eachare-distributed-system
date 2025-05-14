@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.Scanner;
 import java.util.concurrent.Semaphore;
 import models.*;
+ 
 
 public class ClientMenu implements Runnable {
     private final Client client;
@@ -27,21 +28,21 @@ public class ClientMenu implements Runnable {
                 } catch (InterruptedException ex) {
                 }
             }
-            
+
             try {
                 client.getPrintLock().lock();
                 System.out.print(
-                    """
-                    \nEscolha um comando:
-                            [1] Listar peers
-                            [2] Obter peers
-                            [3] Listar arquivos locais
-                            [4] Buscar arquivos
-                            [5] Exibir estatísticas
-                            [6] Alterar tamanho de chunk
-                            [9] Sair
-                    >""");
-            }finally {
+                        """
+                                \nEscolha um comando:
+                                        [1] Listar peers
+                                        [2] Obter peers
+                                        [3] Listar arquivos locais
+                                        [4] Buscar arquivos
+                                        [5] Exibir estatísticas
+                                        [6] Alterar tamanho de chunk
+                                        [9] Sair
+                                >""");
+            } finally {
                 client.getPrintLock().unlock();
             }
 
@@ -63,7 +64,7 @@ public class ClientMenu implements Runnable {
                 case 9 -> sair();
                 default -> System.out.println("    Opção inválida. Tente outra opção.");
             }
-            
+
         } while (option != 9);
     }
 
@@ -71,17 +72,18 @@ public class ClientMenu implements Runnable {
         client.getPrintLock().lock();
         int counter = 0;
         int option = 0;
-        
+
         try {
             String message = "\nLista de peers: \n        [0] voltar para o menu anterior\n";
-            for (Peer p  : client.getNeighborList()) {
-                //  [1] 255.255.255.255:8000 ONLINE
-                message = message + String.format("        [%d] %s:%d %s\n", counter + 1, p.getAddress(), p.getPort(), p.getStatus());
+            for (Peer p : client.getNeighborList()) {
+                // [1] 255.255.255.255:8000 ONLINE
+                message = message + String.format("        [%d] %s:%d %s\n", counter + 1, p.getAddress(), p.getPort(),
+                        p.getStatus());
                 counter++;
             }
-            
+
             System.out.print(message + ">");
-        }finally {
+        } finally {
             client.getPrintLock().unlock();
         }
 
@@ -96,9 +98,9 @@ public class ClientMenu implements Runnable {
         if (option == 0) {
             return;
         }
-        
+
         if (option > 0 && option <= counter) {
-            Peer p = client.getNeighborList().get(option - 1); 
+            Peer p = client.getNeighborList().get(option - 1);
             client.addMessage(p, "HELLO", null);
         }
     }
@@ -106,7 +108,7 @@ public class ClientMenu implements Runnable {
     private void obterPeers() {
         for (Peer peer : client.getNeighborList()) {
             client.addMessage(peer, "GET_PEERS", null);
-            
+
         }
     }
 
@@ -127,13 +129,46 @@ public class ClientMenu implements Runnable {
             } else {
                 System.out.println("    Diretorio invalido.");
             }
-        }finally {
+        } finally {
             client.getPrintLock().unlock();
         }
     }
 
     private void buscarArquivos() {
-        // Ainda nao sera implementado
+        client.getPrintLock().lock();
+        try {
+
+            client.getFoundFiles().clear();
+
+            for (Peer peer : client.getNeighborList()) {
+                if (peer.getStatus().equals("ONLINE")) {
+                    client.addMessage(peer, "LS", null);
+                }
+            }
+
+            // FIXME: Mudar isso. Talvez, caiba aqui um Semaphore ou CountDownLatch
+
+            System.out.println("    Buscando arquivos...");
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+
+            System.out.println("\nArquivos encontrados na rede:");
+            int index = 1;
+            for (FoundFile file : client.getFoundFiles()) {
+                System.out.printf("    [%d] %s (%s) - %d bytes%n",
+                        index, file.getFileName(), file.getPeerAddress(), file.getFileSize());
+                index++;
+            }
+
+            
+            System.out.println("    [0] Cancelar");
+
+        } finally {
+            client.getPrintLock().unlock();
+        }
     }
 
     private void exibirEstatisticas() {
@@ -161,5 +196,4 @@ public class ClientMenu implements Runnable {
         }
     }
 
-} 
-    
+}

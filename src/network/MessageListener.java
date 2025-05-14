@@ -35,7 +35,7 @@ public class MessageListener implements Runnable {
                 String originParts[] = origin.split(":");
                 String type = messageParts[2];
 
-                //Create a peer if its the first message and assigns it a socket
+                // Create a peer if its the first message and assigns it a socket
                 if (!hasPeer) {
                     sender = client.findPeer(originParts[0], Integer.parseInt(originParts[1]));
                     if (sender == null) {
@@ -50,23 +50,20 @@ public class MessageListener implements Runnable {
                 client.getClock().getClockLock().lock();
 
                 try {
-                     
+
                     int newClock = client.getClock().mergeClocks(receivedClock);
                     System.out.println("    => Atualizando relógio para " + newClock);
 
-                     
                     if (receivedClock > sender.getClock()) {
                         sender.setClock(receivedClock);
                     }
 
-                     
                     if ("PEER_LIST".equals(type)) {
                         System.out.println("    Resposta recebida: \"" + message + "\"");
                     } else {
                         System.out.println("\n    Mensagem recebida: \"" + message + "\"");
                     }
 
-                
                     switch (type) {
                         case "HELLO" -> updatePeerStatus(sender, "ONLINE");
                         case "GET_PEERS" -> {
@@ -77,7 +74,18 @@ public class MessageListener implements Runnable {
                             appendList(messageParts);
                             client.getResponseSemaphore().release();
                         }
-                        case "BYE" -> updatePeerStatus(sender, "OFFLINE");
+                        case "BYE" -> {
+                            updatePeerStatus(sender, "OFFLINE");
+                            sender.setClock(receivedClock);
+
+                        }
+
+                        case "LS" -> {
+                            updatePeerStatus(sender, "ONLINE");
+                            sendFileListTo(sender); 
+                        }
+                        case "LS_LIST" -> collectListFile(messageParts, sender);
+
                         default -> System.err.println("Tipo de mensagem desconhecido: " + type);
                     }
 
@@ -87,7 +95,7 @@ public class MessageListener implements Runnable {
                 }
             }
         } catch (IOException e) {
-             
+
         } finally {
             closeConnection();
         }
@@ -125,11 +133,11 @@ public class MessageListener implements Runnable {
 
                 Peer p = client.findPeer(address, port);
                 if (p != null) {
-                    // atualiza apenas se o relógio recebido for maior
                     if (peerClock > p.getClock()) {
                         p.setClock(peerClock);
                         p.setStatus(status);
                     }
+
                 } else {
                     Peer peer = new Peer(address, port);
                     peer.setStatus(status);
@@ -145,14 +153,14 @@ public class MessageListener implements Runnable {
         }
     }
 
-
     private void sendPeerListTo(Peer sender) {
         LinkedList<String> peerList = new LinkedList<String>();
         int count = 0;
 
         for (Peer peer : client.getNeighborList()) {
             if (!peer.equals(sender)) {
-                peerList.add(String.format("%s:%d:%s:%d", peer.getAddress(), peer.getPort(), peer.getStatus(),peer.getClock()));
+                peerList.add(String.format("%s:%d:%s:%d", peer.getAddress(), peer.getPort(), peer.getStatus(),
+                        peer.getClock()));
                 count++;
             }
         }
@@ -172,4 +180,40 @@ public class MessageListener implements Runnable {
     private Peer createPeerFromAddress(String address, String port) {
         return new Peer(address, Integer.parseInt(port));
     }
+
+
+    private void sendFileListTo(Peer sender) {
+        LinkedList<String> fileList = new LinkedList<>();
+        File folder = client.getFolder();
+        File[] files = folder.listFiles();
+        int count = (files != null) ? files.length : 0;
+
+        fileList.add(Integer.toString(count));
+        if (files != null) {
+            for (File file : files) {
+                fileList.add(file.getName() + ":" + file.length());
+            }
+        }
+
+        client.addMessage(sender, "LS_LIST", fileList);
+    }
+
+    private void collectListFile(String[] parts, Peer sender) {
+        if (parts.length < 4)
+            return;
+
+        int fileCount = Integer.parseInt(parts[3]);
+        for (int i = 4; i < 4 + fileCount; i++) {
+            if (i >= parts.length)
+                break;
+            String[] fileInfo = parts[i].split(":");
+            if (fileInfo.length == 2) {
+                String fileName = fileInfo[0];
+                long fileSize = Long.parseLong(fileInfo[1]);
+                String peerAddress = sender.getAddress() + ":" + sender.getPort();
+                client.getFoundFiles().add(new FoundFile(fileName, fileSize, peerAddress));
+            }
+        }
+    }
+
 }

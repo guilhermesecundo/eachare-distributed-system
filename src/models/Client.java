@@ -20,6 +20,9 @@ public class Client {
     private LinkedList<Peer> neighborList;
     private final LinkedBlockingQueue<Message> messageList;
 
+    private final LinkedList<FoundFile> foundFiles = new LinkedList<>();
+
+
     public Client(String address, int port, File neighborsFile, File folder) {
         this.address = address;
         this.port = port;
@@ -106,4 +109,7 @@ public class Client {
         return this.responseSemaphore;
     }
 
+    public LinkedList<FoundFile> getFoundFiles() {
+        return foundFiles;
+    }
 }
