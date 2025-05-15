@@ -7,6 +7,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.LinkedList;
 import models.*;
 
@@ -52,7 +56,7 @@ public class MessageListener implements Runnable {
                 try {
 
                     int newClock = client.getClock().mergeClocks(receivedClock);
-                    System.out.println("    => Atualizando relógio para " + newClock);
+                    System.out.println("    => Atualizando relogio para " + newClock);
 
                     if (receivedClock > sender.getClock()) {
                         sender.setClock(receivedClock);
@@ -76,15 +80,22 @@ public class MessageListener implements Runnable {
                         }
                         case "BYE" -> {
                             updatePeerStatus(sender, "OFFLINE");
-                            sender.setClock(receivedClock);
 
                         }
 
                         case "LS" -> {
                             updatePeerStatus(sender, "ONLINE");
-                            sendFileListTo(sender); 
+                            sendFileListTo(sender);
                         }
                         case "LS_LIST" -> collectListFile(messageParts, sender);
+
+                        case "DL" -> {
+                            String fileName = messageParts[3];
+                            sendFile(sender, fileName);
+                        }
+                        case "FILE" -> {
+                            saveFile(messageParts);
+                        }
 
                         default -> System.err.println("Tipo de mensagem desconhecido: " + type);
                     }
@@ -181,7 +192,6 @@ public class MessageListener implements Runnable {
         return new Peer(address, Integer.parseInt(port));
     }
 
-
     private void sendFileListTo(Peer sender) {
         LinkedList<String> fileList = new LinkedList<>();
         File folder = client.getFolder();
@@ -216,4 +226,47 @@ public class MessageListener implements Runnable {
         }
     }
 
+    private void sendFile(Peer destinationPeer, String fileName) {
+        try {
+            File file = new File(client.getFolder(), fileName);
+            if (!file.exists()) {
+                System.err.println("    Arquivo não encontrado: " + fileName);
+                return;
+            }
+
+            byte[] fileContent = Files.readAllBytes(file.toPath());
+            String base64Content = Base64.getEncoder().encodeToString(fileContent);
+
+            LinkedList<String> args = new LinkedList<>();
+            args.add(fileName);
+            args.add("0"); // Ainda nao sera usado agora
+            args.add("0"); //Ainda nao sera usado agora  
+            args.add(base64Content);
+
+            client.addMessage(destinationPeer, "FILE", args);
+        } catch (IOException e) {
+            System.err.println("    Erro ao ler arquivo: " + fileName);
+        }
+    }
+
+     
+    private void saveFile(String[] parts) {
+        if (parts.length < 7) {
+            System.err.println("    Mensagem FILE mal formatada.");
+            return;
+        }
+
+        String fileName = parts[3];
+        String base64Content = parts[6];
+
+        try {
+            byte[] decodedBytes = Base64.getDecoder().decode(base64Content);
+            Path downloadPath = Paths.get(client.getFolder().getAbsolutePath(), fileName);  
+            Files.write(downloadPath, decodedBytes);
+
+            System.out.println("    Download do arquivo " + fileName + " finalizado.");
+        } catch (IOException e) {
+            System.err.println("    Erro ao processar arquivo: " + fileName);
+        }
+    }
 }

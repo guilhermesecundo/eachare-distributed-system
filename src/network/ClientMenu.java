@@ -1,6 +1,7 @@
 package network;
 
 import java.io.File;
+import java.util.LinkedList;
 import java.util.Scanner;
 import java.util.concurrent.Semaphore;
 import models.*;
@@ -135,41 +136,71 @@ public class ClientMenu implements Runnable {
     }
 
     private void buscarArquivos() {
-        client.getPrintLock().lock();
-        try {
+    client.getPrintLock().lock();
+    try {
+        client.getFoundFiles().clear();
 
-            client.getFoundFiles().clear();
-
-            for (Peer peer : client.getNeighborList()) {
-                if (peer.getStatus().equals("ONLINE")) {
-                    client.addMessage(peer, "LS", null);
-                }
+        //envia LS para os peers vizinhos
+        for (Peer peer : client.getNeighborList()) {
+            if (peer.getStatus().equals("ONLINE")) {
+                client.addMessage(peer, "LS", null);
             }
-
-            // FIXME: Mudar isso. Talvez, caiba aqui um Semaphore ou CountDownLatch
-
-            System.out.println("    Buscando arquivos...");
-            try {
-                Thread.sleep(5000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-
-            System.out.println("\nArquivos encontrados na rede:");
-            int index = 1;
-            for (FoundFile file : client.getFoundFiles()) {
-                System.out.printf("    [%d] %s (%s) - %d bytes%n",
-                        index, file.getFileName(), file.getPeerAddress(), file.getFileSize());
-                index++;
-            }
-
-            
-            System.out.println("    [0] Cancelar");
-
-        } finally {
-            client.getPrintLock().unlock();
         }
+
+        // FIXME: Mudar isso. Talvez, caiba aqui um Semaphore ou CountDownLatch
+
+       System.out.println("    Buscando arquivos...");
+        try {
+            Thread.sleep(5000);  
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        System.out.println("\nArquivos encontrados na rede:");
+        int index = 1;
+        for (FoundFile file : client.getFoundFiles()) {
+            System.out.printf("    [%d] %s (%s) - %d bytes%n",
+                    index, file.getFileName(), file.getPeerAddress(), file.getFileSize());
+            index++;
+        }
+
+        System.out.println("    [0] Cancelar");
+        System.out.print("Digite o numero do arquivo para fazer o download: ");
+        int escolha = scanner.nextInt();
+
+        if (escolha == 0) {
+            return;
+        } else if (escolha > 0 && escolha <= client.getFoundFiles().size()) {
+            FoundFile selectedFile = client.getFoundFiles().get(escolha - 1);
+            
+             
+            String destinationAddress = selectedFile.getPeerAddress();
+            String[] addressParts = destinationAddress.split(":");
+            String ip = addressParts[0];
+            int port = Integer.parseInt(addressParts[1]);
+
+            Peer destinationPeer = client.findPeer(ip, port);
+
+            if (destinationPeer != null && destinationPeer.getStatus().equals("ONLINE")) {
+                LinkedList<String> args = new LinkedList<>();
+                args.add(selectedFile.getFileName());
+                args.add("0"); // Ainda nao sera usado agora
+                args.add("0"); // Ainda nao sera usado agora
+
+                client.addMessage(destinationPeer, "DL", args);
+                System.out.println("    Download iniciado para " + destinationAddress);
+            } else {
+                System.out.println("    Peer " + destinationAddress + " indisponível.");
+            }
+        } else {
+            System.out.println("    Opção inválida.");
+        }
+    } finally {
+        client.getPrintLock().unlock();
     }
+}
+
+   
 
     private void exibirEstatisticas() {
         // Ainda nao sera implementado
