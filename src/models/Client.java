@@ -3,8 +3,8 @@ package models;
 
 import java.io.File;
 import java.util.LinkedList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Client {
@@ -14,7 +14,7 @@ public class Client {
     private final File folder;
 
     private final ReentrantLock printLock;
-    private final Semaphore responseSemaphore;
+    private CountDownLatch responseLatch;
     private final Clock clock;
 
     private LinkedList<Peer> neighborList;
@@ -31,7 +31,7 @@ public class Client {
 
         this.clock = new Clock();
         this.printLock = new ReentrantLock();
-        this.responseSemaphore = new Semaphore(0); 
+        this.responseLatch = new CountDownLatch(0); 
 
         this.neighborList = null;
         this.messageList = new LinkedBlockingQueue<Message>();
@@ -105,11 +105,15 @@ public class Client {
         return this.printLock;
     }
 
-    public Semaphore getResponseSemaphore(){
-        return this.responseSemaphore;
+    public CountDownLatch getResponseLatch(){
+        return this.responseLatch;
+    }
+
+    public void setResponseLatch(CountDownLatch latch){
+        this.responseLatch = latch;
     }
 
     public LinkedList<FoundFile> getFoundFiles() {
-        return foundFiles;
+        return this.foundFiles;
     }
 }

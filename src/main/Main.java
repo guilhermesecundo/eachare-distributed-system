@@ -28,21 +28,21 @@ public class Main {
             address = parts[0];
             port = parts[1];
         } else {
-            System.out.println("Endereco inválido. Use <endereco>:<porta>.");
+            System.out.println("Endereco invalido. Use <endereco>:<porta>.");
             System.exit(1);
         }
         
         // Validar <vizinhos.txt>
         File neighborsFile = new File(args[1]);
         if ( !neighborsFile.exists() || !neighborsFile.isFile()){
-            System.out.println("Erro: O arquivo de vizinhos não existe ou não é um arquivo válido.");
+            System.out.println("Erro: O arquivo de vizinhos nao existe ou nao e um arquivo valido.");
             System.exit(1);
         }
             
         // Validar <diretorio_compartilhado>
         File folder = new File(args[2]);
         if (!folder.isDirectory() || !folder.exists()) {
-            System.out.println("Erro: O diretório compartilhado não existe ou não é um diretório válido.");
+            System.out.println("Erro: O diretorio compartilhado nao existe ou nao e um diretorio valido.");
             System.exit(1);
         }
         
@@ -83,7 +83,7 @@ public class Main {
             messageHandlerThread.join();
 
         } catch (NumberFormatException e) {
-            System.err.println("Porta inválida: " + port);
+            System.err.println("Porta invalida: " + port);
             System.exit(1);
         } catch (InterruptedException e) {
         }
@@ -103,14 +103,14 @@ public class Main {
                     try {
                         port = Integer.parseInt(parts[1]);
                     } catch (NumberFormatException e) {
-                        System.out.println("Erro: Porta inválida na linha -> " + line);
+                        System.out.println("Erro: Porta invalida na linha -> " + line);
                         continue;
                     }
                     Peer p = new Peer(address, port);
                     list.add(p);
                     System.out.println("Adicionando novo peer " + address + ":" + port + " status OFFLINE");
                 } else {
-                    System.out.println("Erro: Formato inválido na linha -> " + line);
+                    System.out.println("Erro: Formato invalido na linha -> " + line);
                 }
             }
         } catch (IOException e) {

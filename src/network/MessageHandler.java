@@ -31,7 +31,7 @@ public class MessageHandler implements Runnable {
 
                 
                 clock = client.getClock().updateClock();
-                System.out.println("    => Atualizando relógio para " + clock);
+                System.out.println("    => Atualizando relogio para " + clock);
                 System.out.println(message.messageToString(address, port, clock));
 
                 Peer p = message.getAddressPeer();
@@ -52,10 +52,12 @@ public class MessageHandler implements Runnable {
                     }
     
                     try {
+                        //Sent the message succesfully
                         PrintStream outPrintStream = new PrintStream(p.getSocket().getOutputStream());
                         outPrintStream.print(message.messageToSendFormat(address, port, clock));
                         verifyMessageStatus(message.getMessageType(), true, p);
                     } catch (IOException e) {
+                        //Couldn send the message
                         verifyMessageStatus(message.getMessageType(), false, p);
                     }
                 }finally {
@@ -81,7 +83,7 @@ public class MessageHandler implements Runnable {
                         client.getClock().getClockLock().unlock();
 
                         //Awaits the response and lock
-                        client.getResponseSemaphore().acquire();
+                        client.getResponseLatch().await();
                         client.getPrintLock().lock();
                         client.getClock().getClockLock().lock();
                     } catch (InterruptedException ex) {
@@ -89,6 +91,12 @@ public class MessageHandler implements Runnable {
                 }
                 updatePeerStatus(status, p);
             }
+            case "LS" -> {
+                if (status == false) {
+                    client.getResponseLatch().countDown();
+                }
+            }
+            
             case "BYE" ->{
                 if (client.getMessageList().isEmpty()) {
                     exitSemaphore.release();

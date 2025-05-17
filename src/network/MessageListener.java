@@ -45,6 +45,7 @@ public class MessageListener implements Runnable {
                     if (sender == null) {
                         sender = createPeerFromAddress(originParts[0], originParts[1]);
                         client.addPeer(sender);
+                        //TODO: add to neighbor file
                     }
                     sender.setSocket(this.socket);
                     hasPeer = true;
@@ -76,18 +77,19 @@ public class MessageListener implements Runnable {
                         }
                         case "PEER_LIST" -> {
                             appendList(messageParts);
-                            client.getResponseSemaphore().release();
+                            client.getResponseLatch().countDown();
                         }
                         case "BYE" -> {
                             updatePeerStatus(sender, "OFFLINE");
-
                         }
-
                         case "LS" -> {
                             updatePeerStatus(sender, "ONLINE");
                             sendFileListTo(sender);
                         }
-                        case "LS_LIST" -> collectListFile(messageParts, sender);
+                        case "LS_LIST" -> {
+                            collectListFile(messageParts, sender);
+                            client.getResponseLatch().countDown();
+                        }
 
                         case "DL" -> {
                             String fileName = messageParts[3];
@@ -133,7 +135,7 @@ public class MessageListener implements Runnable {
             for (int i = 4; i < parts.length; i++) {
                 String[] peerParts = parts[i].split(":");
                 if (peerParts.length != 4) {
-                    System.err.println("Formato inválido do peer: " + parts[i]);
+                    System.err.println("Formato invalido do peer: " + parts[i]);
                     continue;
                 }
 
@@ -165,7 +167,7 @@ public class MessageListener implements Runnable {
     }
 
     private void sendPeerListTo(Peer sender) {
-        LinkedList<String> peerList = new LinkedList<String>();
+        LinkedList<String> peerList = new LinkedList<>();
         int count = 0;
 
         for (Peer peer : client.getNeighborList()) {

@@ -3,6 +3,7 @@ package network;
 import java.io.File;
 import java.util.LinkedList;
 import java.util.Scanner;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import models.*;
  
@@ -39,7 +40,7 @@ public class ClientMenu implements Runnable {
                                         [2] Obter peers
                                         [3] Listar arquivos locais
                                         [4] Buscar arquivos
-                                        [5] Exibir estatísticas
+                                        [5] Exibir estatisticas
                                         [6] Alterar tamanho de chunk
                                         [9] Sair
                                 >""");
@@ -48,7 +49,7 @@ public class ClientMenu implements Runnable {
             }
 
             while (!scanner.hasNextInt()) {
-                System.out.println("    Entrada inválida. Digite um número.");
+                System.out.println("    Entrada invalida. Digite um numero.");
                 scanner.next();
                 System.out.print(">");
             }
@@ -63,7 +64,7 @@ public class ClientMenu implements Runnable {
                 case 5 -> exibirEstatisticas();
                 case 6 -> alterarTamanhoChunk();
                 case 9 -> sair();
-                default -> System.out.println("    Opção inválida. Tente outra opção.");
+                default -> System.out.println("    Opcao invalida. Tente outra opcao.");
             }
 
         } while (option != 9);
@@ -72,7 +73,6 @@ public class ClientMenu implements Runnable {
     private void listarPeers() {
         client.getPrintLock().lock();
         int counter = 0;
-        int option = 0;
 
         try {
             String message = "\nLista de peers: \n        [0] voltar para o menu anterior\n";
@@ -89,12 +89,12 @@ public class ClientMenu implements Runnable {
         }
 
         while (!scanner.hasNextInt()) {
-            System.out.println("    Entrada inválida. Digite um número.");
+            System.out.println("    Entrada invalida. Digite um numero.");
             scanner.next();
             System.out.print(">");
         }
 
-        option = scanner.nextInt();
+        int option = scanner.nextInt();
 
         if (option == 0) {
             return;
@@ -109,7 +109,6 @@ public class ClientMenu implements Runnable {
     private void obterPeers() {
         for (Peer peer : client.getNeighborList()) {
             client.addMessage(peer, "GET_PEERS", null);
-
         }
     }
 
@@ -136,35 +135,36 @@ public class ClientMenu implements Runnable {
     }
 
     private void buscarArquivos() {
-    client.getPrintLock().lock();
-    try {
         client.getFoundFiles().clear();
+        
+        System.out.println("    Buscando arquivos...");
 
+        int messageCounter = 0;
         //envia LS para os peers vizinhos
         for (Peer peer : client.getNeighborList()) {
             if (peer.getStatus().equals("ONLINE")) {
                 client.addMessage(peer, "LS", null);
+                messageCounter++;
             }
         }
-
-        // FIXME: Mudar isso. Talvez, caiba aqui um Semaphore ou CountDownLatch
-
-       System.out.println("    Buscando arquivos...");
+        client.setResponseLatch(new CountDownLatch(messageCounter));
+        
         try {
-            Thread.sleep(5000);  
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            client.getResponseLatch().await();
+        } catch (InterruptedException ex) {
         }
 
         System.out.println("\nArquivos encontrados na rede:");
         int index = 1;
+        
+        System.out.println("    [0] Cancelar");
+
         for (FoundFile file : client.getFoundFiles()) {
             System.out.printf("    [%d] %s (%s) - %d bytes%n",
                     index, file.getFileName(), file.getPeerAddress(), file.getFileSize());
             index++;
         }
 
-        System.out.println("    [0] Cancelar");
         System.out.print("Digite o numero do arquivo para fazer o download: ");
         int escolha = scanner.nextInt();
 
@@ -173,7 +173,7 @@ public class ClientMenu implements Runnable {
         } else if (escolha > 0 && escolha <= client.getFoundFiles().size()) {
             FoundFile selectedFile = client.getFoundFiles().get(escolha - 1);
             
-             
+            
             String destinationAddress = selectedFile.getPeerAddress();
             String[] addressParts = destinationAddress.split(":");
             String ip = addressParts[0];
@@ -190,18 +190,14 @@ public class ClientMenu implements Runnable {
                 client.addMessage(destinationPeer, "DL", args);
                 System.out.println("    Download iniciado para " + destinationAddress);
             } else {
-                System.out.println("    Peer " + destinationAddress + " indisponível.");
+                System.out.println("    Peer " + destinationAddress + " indisponivel.");
             }
         } else {
-            System.out.println("    Opção inválida.");
+            System.out.println("    Opcao invalida.");
         }
-    } finally {
-        client.getPrintLock().unlock();
-    }
-}
-
+    } 
+    
    
-
     private void exibirEstatisticas() {
         // Ainda nao sera implementado
     }
