@@ -36,14 +36,15 @@ public class ClientMenu implements Runnable {
                 System.out.print(
                         """
                                 \nEscolha um comando:
-                                        [1] Listar peers
-                                        [2] Obter peers
-                                        [3] Listar arquivos locais
-                                        [4] Buscar arquivos
-                                        [5] Exibir estatisticas
-                                        [6] Alterar tamanho de chunk
-                                        [9] Sair
+                                    [1] Listar peers
+                                    [2] Obter peers
+                                    [3] Listar arquivos locais
+                                    [4] Buscar arquivos
+                                    [5] Exibir estatisticas
+                                    [6] Alterar tamanho de chunk
+                                    [9] Sair
                                 >""");
+                client.setlast_arrow(true);
             } finally {
                 client.getPrintLock().unlock();
             }
@@ -52,6 +53,7 @@ public class ClientMenu implements Runnable {
                 System.out.println("    Entrada invalida. Digite um numero.");
                 scanner.next();
                 System.out.print(">");
+                client.setlast_arrow(true);
             }
 
             option = scanner.nextInt();
@@ -84,6 +86,7 @@ public class ClientMenu implements Runnable {
             }
 
             System.out.print(message + ">");
+            client.setlast_arrow(true);
         } finally {
             client.getPrintLock().unlock();
         }
@@ -92,6 +95,7 @@ public class ClientMenu implements Runnable {
             System.out.println("    Entrada invalida. Digite um numero.");
             scanner.next();
             System.out.print(">");
+            client.setlast_arrow(true);
         }
 
         int option = scanner.nextInt();
@@ -117,9 +121,9 @@ public class ClientMenu implements Runnable {
         client.getPrintLock().lock();
         try {
             if (folder.isDirectory()) {
-                System.out.println("\n");
+                System.out.print("\n");
                 File[] files = folder.listFiles();
-                if (files != null) {
+                if (files.length > 0) {
                     for (File file : files) {
                         System.out.println(file.getName());
                     }
@@ -136,6 +140,7 @@ public class ClientMenu implements Runnable {
 
     private void buscarArquivos() {
         client.getFoundFiles().clear();
+        
         
         System.out.println("    Buscando arquivos...");
 
@@ -154,6 +159,7 @@ public class ClientMenu implements Runnable {
         } catch (InterruptedException ex) {
         }
 
+        client.getPrintLock().lock();
         System.out.println("\nArquivos encontrados na rede:");
         int index = 1;
         
@@ -165,15 +171,17 @@ public class ClientMenu implements Runnable {
             index++;
         }
 
-        System.out.print("Digite o numero do arquivo para fazer o download: ");
+        System.out.print("Digite o numero do arquivo para fazer o download: \n>");
+        client.setlast_arrow(true);
+        client.getPrintLock().unlock();
         int escolha = scanner.nextInt();
 
+        client.getPrintLock().lock();
         if (escolha == 0) {
             return;
-        } else if (escolha > 0 && escolha <= client.getFoundFiles().size()) {
+        }
+        if (escolha > 0 && escolha <= client.getFoundFiles().size()) {
             FoundFile selectedFile = client.getFoundFiles().get(escolha - 1);
-            
-            
             String destinationAddress = selectedFile.getPeerAddress();
             String[] addressParts = destinationAddress.split(":");
             String ip = addressParts[0];
@@ -188,13 +196,14 @@ public class ClientMenu implements Runnable {
                 args.add("0"); // Ainda nao sera usado agora
 
                 client.addMessage(destinationPeer, "DL", args);
-                System.out.println("    Download iniciado para " + destinationAddress);
+                System.out.println("    arquivo escolhido " + selectedFile.getFileName());
             } else {
                 System.out.println("    Peer " + destinationAddress + " indisponivel.");
             }
         } else {
             System.out.println("    Opcao invalida.");
         }
+        client.getPrintLock().unlock();
     } 
     
    
@@ -212,9 +221,6 @@ public class ClientMenu implements Runnable {
             if (peer.getStatus().equals("ONLINE")) {
                 client.addMessage(peer, "BYE", null);
             }
-        }
-        if (client.getMessageList().isEmpty()) {
-            System.exit(0);
         }
         try {
             exitSemaphore.acquire();

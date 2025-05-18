@@ -9,6 +9,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class Client {
     private final String address;
+    private boolean last_arrow;
     private final int port;
     private final File neighborsFile;
     private final File folder;
@@ -24,6 +25,7 @@ public class Client {
 
 
     public Client(String address, int port, File neighborsFile, File folder) {
+        this.last_arrow = true;
         this.address = address;
         this.port = port;
         this.neighborsFile = neighborsFile;
@@ -115,5 +117,13 @@ public class Client {
 
     public LinkedList<FoundFile> getFoundFiles() {
         return this.foundFiles;
+    }
+
+    public boolean getlast_arrow() {
+        return last_arrow;
+    }
+
+    public void setlast_arrow(boolean last_arrow) {
+        this.last_arrow = last_arrow;
     }
 }

@@ -55,9 +55,12 @@ public class MessageListener implements Runnable {
                 client.getClock().getClockLock().lock();
 
                 try {
-
                     int newClock = client.getClock().mergeClocks(receivedClock);
-                    System.out.println("\n    => Atualizando relogio para " + newClock);
+                    if(client.getlast_arrow()){
+                        System.out.print("\n");
+                        client.setlast_arrow(false);
+                    }
+                    System.out.println("    => Atualizando relogio para " + newClock);
 
                     if (receivedClock > sender.getClock()) {
                         sender.setClock(receivedClock);

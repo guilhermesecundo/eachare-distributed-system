@@ -28,9 +28,14 @@ public class MessageHandler implements Runnable {
 
                 client.getPrintLock().lock();
                 client.getClock().getClockLock().lock();
-
-            
                 clock = client.getClock().updateClock();
+
+                //xD
+                if(client.getlast_arrow()){
+                    System.out.print("\n");
+                    client.setlast_arrow(false);
+                }
+
                 System.out.println("    => Atualizando relogio para " + clock);
                 System.out.println(message.messageToString(address, port, clock));
 
