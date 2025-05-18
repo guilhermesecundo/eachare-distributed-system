@@ -6,7 +6,6 @@ import java.util.Scanner;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import models.*;
- 
 
 public class ClientMenu implements Runnable {
     private final Client client;
@@ -140,8 +139,8 @@ public class ClientMenu implements Runnable {
 
     private void buscarArquivos() {
         client.getFoundFiles().clear();
-        
-        
+
+
         System.out.println("    Buscando arquivos...");
 
         int messageCounter = 0;
@@ -153,60 +152,66 @@ public class ClientMenu implements Runnable {
             }
         }
         client.setResponseLatch(new CountDownLatch(messageCounter));
-        
+
         try {
-            client.getResponseLatch().await();
+            client.getResponseLatch().await(); // aguarda todas as respostas
         } catch (InterruptedException ex) {
         }
 
         client.getPrintLock().lock();
-        System.out.println("\nArquivos encontrados na rede:");
-        int index = 1;
-        
-        System.out.println("    [0] Cancelar");
+        try {
 
-        for (FoundFile file : client.getFoundFiles()) {
-            System.out.printf("    [%d] %s (%s) - %d bytes%n",
-                    index, file.getFileName(), file.getPeerAddress(), file.getFileSize());
-            index++;
-        }
+            System.out.println("\nArquivos encontrados na rede:");
+            System.out.println("|    | Nome            | Tamanho | Peer            |");
+            System.out.printf("| [0] %-15s | %-7s | %-15s |%n", "<Cancelar>", "", "");
 
-        System.out.print("Digite o numero do arquivo para fazer o download: \n>");
-        client.setlast_arrow(true);
-        client.getPrintLock().unlock();
-        int escolha = scanner.nextInt();
-
-        client.getPrintLock().lock();
-        if (escolha == 0) {
-            return;
-        }
-        if (escolha > 0 && escolha <= client.getFoundFiles().size()) {
-            FoundFile selectedFile = client.getFoundFiles().get(escolha - 1);
-            String destinationAddress = selectedFile.getPeerAddress();
-            String[] addressParts = destinationAddress.split(":");
-            String ip = addressParts[0];
-            int port = Integer.parseInt(addressParts[1]);
-
-            Peer destinationPeer = client.findPeer(ip, port);
-
-            if (destinationPeer != null && destinationPeer.getStatus().equals("ONLINE")) {
-                LinkedList<String> args = new LinkedList<>();
-                args.add(selectedFile.getFileName());
-                args.add("0"); // Ainda nao sera usado agora
-                args.add("0"); // Ainda nao sera usado agora
-
-                client.addMessage(destinationPeer, "DL", args);
-                System.out.println("    arquivo escolhido " + selectedFile.getFileName());
-            } else {
-                System.out.println("    Peer " + destinationAddress + " indisponivel.");
+            int index = 1;
+            for (FoundFile file : client.getFoundFiles()) {
+                System.out.printf(
+                        "| [%d] %-15s | %-7d | %-15s |%n",
+                        index,
+                        file.getFileName(),
+                        file.getFileSize(),
+                        file.getPeerAddress());
+                index++;
             }
-        } else {
-            System.out.println("    Opcao invalida.");
+
+            System.out.print("Digite o numero do arquivo para fazer o download: \n>");
+            client.setlast_arrow(true);
+
+            int escolha = scanner.nextInt();
+
+            if (escolha == 0)
+                return;
+
+            if (escolha > 0 && escolha <= client.getFoundFiles().size()) {
+                FoundFile selectedFile = client.getFoundFiles().get(escolha - 1);
+                String destinationAddress = selectedFile.getPeerAddress();
+                String[] addressParts = destinationAddress.split(":");
+                String ip = addressParts[0];
+                int port = Integer.parseInt(addressParts[1]);
+
+                Peer destinationPeer = client.findPeer(ip, port);
+
+                if (destinationPeer != null && destinationPeer.getStatus().equals("ONLINE")) {
+                    LinkedList<String> args = new LinkedList<>();
+                    args.add(selectedFile.getFileName());
+                    args.add("0"); // Ainda nao sera usado agora
+                    args.add("0"); // Ainda nao sera usado agora
+
+                    client.addMessage(destinationPeer, "DL", args);
+                    System.out.println("    arquivo escolhido " + selectedFile.getFileName());
+                } else {
+                    System.out.println("    Peer " + destinationAddress + " indisponivel.");
+                }
+            } else {
+                System.out.println("    Opcao invalida.");
+            }
+        } finally {
+            client.getPrintLock().unlock();  
         }
-        client.getPrintLock().unlock();
-    } 
-    
-   
+    }
+
     private void exibirEstatisticas() {
         // Ainda nao sera implementado
     }
