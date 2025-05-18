@@ -222,10 +222,15 @@ public class ClientMenu implements Runnable {
 
     private void sair() {
         System.out.println("    Saindo...");
+        boolean hasMessage = false;
         for (Peer peer : client.getNeighborList()) {
             if (peer.getStatus().equals("ONLINE")) {
                 client.addMessage(peer, "BYE", null);
+                hasMessage = true;
             }
+        }
+        if (!hasMessage) {
+            System.exit(0);
         }
         try {
             exitSemaphore.acquire();
