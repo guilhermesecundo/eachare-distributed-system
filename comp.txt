@@ -1,9 +1,0 @@
-javac -d bin src/main/Main.java src/network/*.java src/models/*.java
-
-jar cfm test/eachare.jar src/manifest.txt -C bin .
-
-cd test
-java -jar eachare.jar 127.0.0.1:8001 vizinhos1.txt pcomp1
-
-cd test
-java -jar eachare.jar 127.0.0.1:8000 vizinhos.txt pcomp
