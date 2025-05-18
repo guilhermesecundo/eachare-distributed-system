@@ -29,7 +29,7 @@ public class MessageHandler implements Runnable {
                 client.getPrintLock().lock();
                 client.getClock().getClockLock().lock();
 
-                
+            
                 clock = client.getClock().updateClock();
                 System.out.println("    => Atualizando relogio para " + clock);
                 System.out.println(message.messageToString(address, port, clock));
@@ -94,6 +94,7 @@ public class MessageHandler implements Runnable {
             case "LS" -> {
                 if (status == false) {
                     client.getResponseLatch().countDown();
+                    updatePeerStatus(status, p);
                 }
             }
             

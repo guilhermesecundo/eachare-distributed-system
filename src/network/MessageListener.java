@@ -57,7 +57,7 @@ public class MessageListener implements Runnable {
                 try {
 
                     int newClock = client.getClock().mergeClocks(receivedClock);
-                    System.out.println("    => Atualizando relogio para " + newClock);
+                    System.out.println("\n    => Atualizando relogio para " + newClock);
 
                     if (receivedClock > sender.getClock()) {
                         sender.setClock(receivedClock);
@@ -66,7 +66,7 @@ public class MessageListener implements Runnable {
                     if ("PEER_LIST".equals(type)) {
                         System.out.println("    Resposta recebida: \"" + message + "\"");
                     } else {
-                        System.out.println("\n    Mensagem recebida: \"" + message + "\"");
+                        System.out.println("    Mensagem recebida: \"" + message + "\"");
                     }
 
                     switch (type) {
