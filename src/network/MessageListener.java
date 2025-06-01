@@ -3,13 +3,12 @@ package network;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.RandomAccessFile;
 import java.net.Socket;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.LinkedList;
 import models.*;
@@ -95,8 +94,7 @@ public class MessageListener implements Runnable {
                         }
 
                         case "DL" -> {
-                            String fileName = messageParts[3];
-                            sendFile(sender, fileName);
+                            sendFile(sender, messageParts);
                         }
                         case "FILE" -> {
                             saveFile(messageParts);
@@ -226,12 +224,23 @@ public class MessageListener implements Runnable {
                 String fileName = fileInfo[0];
                 long fileSize = Long.parseLong(fileInfo[1]);
                 String peerAddress = sender.getAddress() + ":" + sender.getPort();
-                client.getFoundFiles().add(new FoundFile(fileName, fileSize, peerAddress));
+                
+                FoundFile ff = client.findFile(fileName, fileSize);
+                if (ff == null) {
+                    client.getFoundFiles().add(new FoundFile(fileName, fileSize, peerAddress));
+                }else{
+                    ff.addAddress(peerAddress);
+                }
             }
         }
     }
 
-    private void sendFile(Peer destinationPeer, String fileName) {
+    private void sendFile(Peer destinationPeer, String[] messageParts) {
+        String fileName = messageParts[3];
+        int chunkSize = Integer.parseInt(messageParts[4]);
+        int part = Integer.parseInt(messageParts[5]);
+
+
         try {
             File file = new File(client.getFolder(), fileName);
             if (!file.exists()) {
@@ -239,13 +248,30 @@ public class MessageListener implements Runnable {
                 return;
             }
 
-            byte[] fileContent = Files.readAllBytes(file.toPath());
-            String base64Content = Base64.getEncoder().encodeToString(fileContent);
+            long offset = part * chunkSize; //onde comeca
+            int length = chunkSize; //quantos bytes vao ser enviados
+
+            //If chunkSize > lastBytes
+            long fileLength = file.length();
+            if (offset >= fileLength) {
+                offset += -chunkSize;
+            }
+            if (offset + length > fileLength) {
+                length = (int)(fileLength - offset); 
+            }
+
+            byte[] buffer = new byte[length];
+            try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+                raf.seek(offset);           
+                raf.readFully(buffer);      
+            }
+
+            String base64Content = Base64.getEncoder().encodeToString(buffer);
 
             LinkedList<String> args = new LinkedList<>();
             args.add(fileName);
-            args.add("0"); // Ainda nao sera usado agora
-            args.add("0"); //Ainda nao sera usado agora  
+            args.add(String.valueOf(length)); 
+            args.add(String.valueOf(part)); 
             args.add(base64Content);
 
             client.addMessage(destinationPeer, "FILE", args);
@@ -260,18 +286,30 @@ public class MessageListener implements Runnable {
             System.err.println("    Mensagem FILE mal formatada.");
             return;
         }
-
-        String fileName = parts[3];
+        int part = Integer.parseInt(parts[5]);
         String base64Content = parts[6];
+        
+        client.addFileChunk(new Chunk(base64Content, part));
 
-        try {
-            byte[] decodedBytes = Base64.getDecoder().decode(base64Content);
-            Path downloadPath = Paths.get(client.getFolder().getAbsolutePath(), fileName);  
-            Files.write(downloadPath, decodedBytes);
-
-            System.out.println("    Download do arquivo " + fileName + " finalizado.");
-        } catch (IOException e) {
-            System.err.println("    Erro ao processar arquivo: " + fileName);
+        if (client.getFileBuffer().size() < client.getTotalFileParts()) {
+            return;   
         }
+        
+        String fileName = parts[3];
+
+        File outputFile = new File(client.getFolder(), fileName);
+
+        try (FileOutputStream fos = new FileOutputStream(outputFile)) {
+            for (Chunk chunk : client.getFileBuffer()) {
+                byte[] decodedBytes = Base64.getDecoder().decode(chunk.getBase64Content());
+                fos.write(decodedBytes);
+            }
+        }catch (IOException e) {
+            System.err.println("Erro ao salvar o arquivo: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            System.err.println("Erro na decodificação Base64: parte inválida.");
+        }
+        client.getFileBuffer().clear();
+        client.getResponseLatch().countDown();
     }
 }

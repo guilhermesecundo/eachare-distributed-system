@@ -91,9 +91,8 @@ public class ClientMenu implements Runnable {
         }
 
         while (!scanner.hasNextInt()) {
-            System.out.println("    Entrada invalida. Digite um numero.");
+            System.out.println("    Entrada invalida. Digite um numero. \n>");
             scanner.next();
-            System.out.print(">");
             client.setlast_arrow(true);
         }
 
@@ -159,8 +158,8 @@ public class ClientMenu implements Runnable {
         }
 
         client.getPrintLock().lock();
+        String fileName = "";
         try {
-
             System.out.println("\nArquivos encontrados na rede:");
             System.out.println("|    | Nome            | Tamanho | Peer            |");
             System.out.printf("| [0] %-15s | %-7s | %-15s |%n", "<Cancelar>", "", "");
@@ -168,11 +167,17 @@ public class ClientMenu implements Runnable {
             int index = 1;
             for (FoundFile file : client.getFoundFiles()) {
                 System.out.printf(
-                        "| [%d] %-15s | %-7d | %-15s |%n",
-                        index,
-                        file.getFileName(),
-                        file.getFileSize(),
-                        file.getPeerAddress());
+                    "| [%d] %-15s | %-7d |",
+                    index,
+                    file.getFileName(),
+                    file.getFileSize()
+                );
+
+                for (String address : file.getPeerAddresses()) {
+                    System.out.printf("%-15s", address);
+                }
+                System.out.print("\n");
+
                 index++;
             }
 
@@ -186,23 +191,41 @@ public class ClientMenu implements Runnable {
 
             if (escolha > 0 && escolha <= client.getFoundFiles().size()) {
                 FoundFile selectedFile = client.getFoundFiles().get(escolha - 1);
-                String destinationAddress = selectedFile.getPeerAddress();
-                String[] addressParts = destinationAddress.split(":");
-                String ip = addressParts[0];
-                int port = Integer.parseInt(addressParts[1]);
-
-                Peer destinationPeer = client.findPeer(ip, port);
-
-                if (destinationPeer != null && destinationPeer.getStatus().equals("ONLINE")) {
-                    LinkedList<String> args = new LinkedList<>();
-                    args.add(selectedFile.getFileName());
-                    args.add("0"); // Ainda nao sera usado agora
-                    args.add("0"); // Ainda nao sera usado agora
-
-                    client.addMessage(destinationPeer, "DL", args);
-                    System.out.println("    arquivo escolhido " + selectedFile.getFileName());
-                } else {
-                    System.out.println("    Peer " + destinationAddress + " indisponivel.");
+                fileName = selectedFile.getFileName();
+                LinkedList<String> destinationAddresses = selectedFile.getPeerAddresses();
+                int numOfAddresses = destinationAddresses.size();
+                int numOfParts = 1;
+                long fileSize = selectedFile.getFileSize();
+                int chunkSize = client.getChunkSize();
+                
+                while(fileSize - chunkSize >= 0){
+                    fileSize += -chunkSize;
+                    numOfParts++;
+                }
+                
+                int j = 0; //Round robin insano
+                client.setTotalFileParts(numOfParts);
+                System.out.println("    arquivo escolhido " + selectedFile.getFileName());
+                for (int i = 0; i < numOfParts; i++) {
+                    String[] addressParts = destinationAddresses.get(j).split(":");
+                    String ip = addressParts[0];
+                    int port = Integer.parseInt(addressParts[1]);
+    
+                    Peer destinationPeer = client.findPeer(ip, port);
+                    
+                    if (destinationPeer != null && destinationPeer.getStatus().equals("ONLINE")) {
+                        LinkedList<String> args = new LinkedList<>();
+                        args.add(selectedFile.getFileName());
+                        args.add(Integer.toString(chunkSize)); 
+                        args.add(Integer.toString(i)); 
+                        client.addMessage(destinationPeer, "DL", args);
+                    } else {
+                        System.out.println("    Peer " + destinationAddresses.get(j) + " indisponivel.");
+                    }
+                    j++;
+                    if (j == numOfAddresses) {
+                        j = 0;
+                    }
                 }
             } else {
                 System.out.println("    Opcao invalida.");
@@ -210,6 +233,16 @@ public class ClientMenu implements Runnable {
         } finally {
             client.getPrintLock().unlock();  
         }
+
+        client.setResponseLatch(new CountDownLatch(1));
+
+        try {
+            client.getResponseLatch().await(); // Aguarda finalização do download
+            System.out.println("Download do arquivo " + fileName + " finalizado.");
+        } catch (InterruptedException ex) {
+        }
+
+        client.clearFoundFiles();
     }
 
     private void exibirEstatisticas() {
@@ -217,7 +250,22 @@ public class ClientMenu implements Runnable {
     }
 
     private void alterarTamanhoChunk() {
-        // Ainda nao sera implementado
+        client.getPrintLock().lock();
+        try {
+            System.out.print("\nDigite novo tamanho de chunk: \n>");
+            
+            while (!scanner.hasNextInt()) {
+                System.out.println("    Entrada invalida. Digite um numero. \n>");
+                scanner.next();
+                client.setlast_arrow(true);
+            }
+            
+            int option = scanner.nextInt();
+            client.setChunkSize(option);
+            System.out.println("    Tamanho de chunk atualizado: " + option);
+        } finally {
+            client.getPrintLock().unlock();
+        }
     }
 
     private void sair() {

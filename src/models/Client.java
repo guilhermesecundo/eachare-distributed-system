@@ -13,6 +13,7 @@ public class Client {
     private final int port;
     private final File neighborsFile;
     private final File folder;
+    private int chunkSize;
 
     private final ReentrantLock printLock;
     private CountDownLatch responseLatch;
@@ -22,6 +23,8 @@ public class Client {
     private final LinkedBlockingQueue<Message> messageList;
 
     private final LinkedList<FoundFile> foundFiles = new LinkedList<>();
+    private final LinkedList<Chunk> fileBuffer = new LinkedList<>();
+    private int totalFileParts;
 
 
     public Client(String address, int port, File neighborsFile, File folder) {
@@ -30,6 +33,7 @@ public class Client {
         this.port = port;
         this.neighborsFile = neighborsFile;
         this.folder = folder;
+        this.chunkSize = 256;
 
         this.clock = new Clock();
         this.printLock = new ReentrantLock();
@@ -47,6 +51,15 @@ public class Client {
         }
     }
 
+    public FoundFile findFile(String fileName, long fileSize){
+        for (FoundFile file : this.foundFiles) {
+            if (file.getFileName().equals(fileName) && file.getFileSize() == fileSize) {
+                return file;
+            }
+        }
+        return null;
+    }
+
     public Peer findPeer(String address, int port) {
         for (Peer peer : this.neighborList) {
             if (peer.getAddress().equals(address) && peer.getPort() == port) {
@@ -59,7 +72,11 @@ public class Client {
     public void removePeer(Peer peer) {
         neighborList.remove(peer);
     }
-    
+
+    public void clearFoundFiles(){
+        foundFiles.clear();
+    }
+
     //Getters and Setters
     public File getFolder() {
         return this.folder;
@@ -125,5 +142,36 @@ public class Client {
 
     public void setlast_arrow(boolean last_arrow) {
         this.last_arrow = last_arrow;
+    }
+
+    public int getChunkSize() {
+        return chunkSize;
+    }
+
+    public void setChunkSize(int chunkSize) {
+        this.chunkSize = chunkSize;
+    }
+
+    public int getTotalFileParts() {
+        return totalFileParts;
+    }
+
+    public void setTotalFileParts(int total) {
+        this.totalFileParts = total;
+    }
+
+    public LinkedList<Chunk> getFileBuffer(){
+        return this.fileBuffer;
+    }
+
+    public void addFileChunk(Chunk newChunk){
+        int index = 0;
+        for (Chunk chunk : fileBuffer) {
+            if (newChunk.getPart() < chunk.getPart()) {
+                break;
+            }
+            index++;
+        }
+        fileBuffer.add(index, newChunk);
     }
 }
