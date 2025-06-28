@@ -26,6 +26,11 @@ public class Client {
     private final LinkedList<Chunk> fileBuffer = new LinkedList<>();
     private int totalFileParts;
 
+    private final LinkedList<Statistics> downloadStats = new LinkedList<>();
+    private long downloadStartTime;
+    private int downloadPeerCount;
+    private int downloadChunkSize;
+    private long downloadFileSize;
 
     public Client(String address, int port, File neighborsFile, File folder) {
         this.last_arrow = true;
@@ -37,10 +42,26 @@ public class Client {
 
         this.clock = new Clock();
         this.printLock = new ReentrantLock();
-        this.responseLatch = new CountDownLatch(0); 
+        this.responseLatch = new CountDownLatch(0);
 
         this.neighborList = null;
         this.messageList = new LinkedBlockingQueue<Message>();
+    }
+
+    public void startDownload(int chunkSize, int peerCount, long fileSize) {
+        this.downloadPeerCount = peerCount;
+        this.downloadChunkSize = chunkSize;
+        this.downloadFileSize = fileSize;
+        this.downloadStartTime = System.nanoTime();
+    }
+
+    public void completeDownload() {
+        double elapsedTime = (System.nanoTime() - downloadStartTime) / 1_000_000_000.0;
+        downloadStats.add(new Statistics(downloadChunkSize, downloadPeerCount, downloadFileSize, elapsedTime));
+    }
+
+    public LinkedList<Statistics> getDownloadStats() {
+        return downloadStats;
     }
 
     public void addMessage(Peer p, String type, LinkedList<String> extraArgs) {
@@ -51,7 +72,7 @@ public class Client {
         }
     }
 
-    public FoundFile findFile(String fileName, long fileSize){
+    public FoundFile findFile(String fileName, long fileSize) {
         for (FoundFile file : this.foundFiles) {
             if (file.getFileName().equals(fileName) && file.getFileSize() == fileSize) {
                 return file;
@@ -68,67 +89,65 @@ public class Client {
         }
         return null;
     }
-    
+
     public void removePeer(Peer peer) {
         neighborList.remove(peer);
     }
 
-    public void clearFoundFiles(){
+    public void clearFoundFiles() {
         foundFiles.clear();
     }
 
-    //Getters and Setters
+    // Getters and Setters
     public File getFolder() {
         return this.folder;
     }
 
-    public File getNeighborsFile(){
+    public File getNeighborsFile() {
         return this.neighborsFile;
     }
 
-    
-    public String getAddress(){
+    public String getAddress() {
         return this.address;
     }
-    
+
     public int getPort() {
         return this.port;
     }
-    
+
     public Clock getClock() {
         return this.clock;
     }
-    
+
     public void updateClock() {
         this.clock.updateClock();
     }
-    
+
     public LinkedList<Peer> getNeighborList() {
         return neighborList;
     }
 
-    public void setNeighborsList(LinkedList<Peer> list){
+    public void setNeighborsList(LinkedList<Peer> list) {
         this.neighborList = list;
     }
-    
+
     public void addPeer(Peer peer) {
         neighborList.add(peer);
     }
 
-
-    public LinkedBlockingQueue<Message> getMessageList(){
+    public LinkedBlockingQueue<Message> getMessageList() {
         return this.messageList;
     }
 
-    public ReentrantLock getPrintLock(){
+    public ReentrantLock getPrintLock() {
         return this.printLock;
     }
 
-    public CountDownLatch getResponseLatch(){
+    public CountDownLatch getResponseLatch() {
         return this.responseLatch;
     }
 
-    public void setResponseLatch(CountDownLatch latch){
+    public void setResponseLatch(CountDownLatch latch) {
         this.responseLatch = latch;
     }
 
@@ -160,11 +179,11 @@ public class Client {
         this.totalFileParts = total;
     }
 
-    public LinkedList<Chunk> getFileBuffer(){
+    public LinkedList<Chunk> getFileBuffer() {
         return this.fileBuffer;
     }
 
-    public void addFileChunk(Chunk newChunk){
+    public void addFileChunk(Chunk newChunk) {
         int index = 0;
         for (Chunk chunk : fileBuffer) {
             if (newChunk.getPart() < chunk.getPart()) {

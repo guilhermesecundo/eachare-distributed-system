@@ -295,6 +295,8 @@ public class MessageListener implements Runnable {
             return;   
         }
         
+        client.completeDownload(); // registra antes de escrever o arquivo
+
         String fileName = parts[3];
 
         File outputFile = new File(client.getFolder(), fileName);

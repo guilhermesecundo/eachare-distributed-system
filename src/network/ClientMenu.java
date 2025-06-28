@@ -1,7 +1,9 @@
 package network;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
@@ -16,6 +18,34 @@ public class ClientMenu implements Runnable {
         this.client = client;
         this.exitSemaphore = exitSemaphore;
         this.scanner = new Scanner(System.in);
+    }
+
+    private static class SummaryMetrics {
+        private int count = 0;
+        private double sum = 0.0;
+        private double sumSquares = 0.0;
+
+        public void add(double value) {
+            count++;
+            sum += value;
+            sumSquares += value * value;
+        }
+
+        public double getAverage() {
+            return sum / count;
+
+        }
+        // variance = [sumSquares - (sum²/N)] / (N-1)
+        // standard deviation = sqrt(variance)
+        public double getStandardDeviation() {
+            if (count <= 1) return 0.0;
+            double variance = (sumSquares - (sum * sum) / count) / (count - 1);
+            return Math.sqrt(variance);
+        }
+        
+        public int getCount() {
+            return count;
+        }
     }
 
     @Override
@@ -139,11 +169,10 @@ public class ClientMenu implements Runnable {
     private void buscarArquivos() {
         client.getFoundFiles().clear();
 
-
         System.out.println("    Buscando arquivos...");
 
         int messageCounter = 0;
-        //envia LS para os peers vizinhos
+        // envia LS para os peers vizinhos
         for (Peer peer : client.getNeighborList()) {
             if (peer.getStatus().equals("ONLINE")) {
                 client.addMessage(peer, "LS", null);
@@ -167,11 +196,10 @@ public class ClientMenu implements Runnable {
             int index = 1;
             for (FoundFile file : client.getFoundFiles()) {
                 System.out.printf(
-                    "| [%d] %-15s | %-7d |",
-                    index,
-                    file.getFileName(),
-                    file.getFileSize()
-                );
+                        "| [%d] %-15s | %-7d |",
+                        index,
+                        file.getFileName(),
+                        file.getFileSize());
 
                 for (String address : file.getPeerAddresses()) {
                     System.out.printf("%-15s", address);
@@ -197,27 +225,31 @@ public class ClientMenu implements Runnable {
                 int numOfParts = 1;
                 long fileSize = selectedFile.getFileSize();
                 int chunkSize = client.getChunkSize();
+
                 
-                while(fileSize - chunkSize >= 0){
+                while (fileSize - chunkSize >= 0) {
                     fileSize += -chunkSize;
                     numOfParts++;
                 }
-                
-                int j = 0; //Round robin insano
+
+                int j = 0; // Round robin insano
+
+                client.startDownload(chunkSize, numOfAddresses, fileSize);
                 client.setTotalFileParts(numOfParts);
+
                 System.out.println("    arquivo escolhido " + selectedFile.getFileName());
                 for (int i = 0; i < numOfParts; i++) {
                     String[] addressParts = destinationAddresses.get(j).split(":");
                     String ip = addressParts[0];
                     int port = Integer.parseInt(addressParts[1]);
-    
+
                     Peer destinationPeer = client.findPeer(ip, port);
-                    
+
                     if (destinationPeer != null && destinationPeer.getStatus().equals("ONLINE")) {
                         LinkedList<String> args = new LinkedList<>();
                         args.add(selectedFile.getFileName());
-                        args.add(Integer.toString(chunkSize)); 
-                        args.add(Integer.toString(i)); 
+                        args.add(Integer.toString(chunkSize));
+                        args.add(Integer.toString(i));
                         client.addMessage(destinationPeer, "DL", args);
                     } else {
                         System.out.println("    Peer " + destinationAddresses.get(j) + " indisponivel.");
@@ -231,7 +263,7 @@ public class ClientMenu implements Runnable {
                 System.out.println("    Opcao invalida.");
             }
         } finally {
-            client.getPrintLock().unlock();  
+            client.getPrintLock().unlock();
         }
 
         client.setResponseLatch(new CountDownLatch(1));
@@ -246,20 +278,43 @@ public class ClientMenu implements Runnable {
     }
 
     private void exibirEstatisticas() {
-        // Ainda nao sera implementado
+        client.getPrintLock().lock();
+        try {
+            Map<String, SummaryMetrics> statsMap = new HashMap<>();
+            LinkedList<Statistics> allStats = client.getDownloadStats();
+
+            // agrupa stats por (chunkSize, peerCount, fileSize)
+            for (Statistics stat : allStats) {
+                String key = stat.getChunkSize() + "|" + stat.getPeerCount() + "|" + stat.getFileSize();
+                statsMap.computeIfAbsent(key, k -> new SummaryMetrics()).add(stat.getDownloadTime());
+            }
+
+            System.out.println("\nTam. chunk | N peers | Tam. arquivo | N | Tempo [s] | Desvio");
+            for (Map.Entry<String, SummaryMetrics> entry : statsMap.entrySet()) {
+                String[] keys = entry.getKey().split("\\|");
+                SummaryMetrics agg = entry.getValue();
+                System.out.printf("%-10s | %-7s | %-12s | %-2d | %-9.6f | %-9.6f\n",
+                        keys[0], keys[1], keys[2],
+                        agg.getCount(),
+                        agg.getAverage(),
+                        agg.getStandardDeviation());
+            }
+        } finally {
+            client.getPrintLock().unlock();
+        }
     }
 
     private void alterarTamanhoChunk() {
         client.getPrintLock().lock();
         try {
             System.out.print("\nDigite novo tamanho de chunk: \n>");
-            
+
             while (!scanner.hasNextInt()) {
                 System.out.println("    Entrada invalida. Digite um numero. \n>");
                 scanner.next();
                 client.setlast_arrow(true);
             }
-            
+
             int option = scanner.nextInt();
             client.setChunkSize(option);
             System.out.println("    Tamanho de chunk atualizado: " + option);
