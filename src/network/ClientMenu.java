@@ -35,14 +35,16 @@ public class ClientMenu implements Runnable {
             return sum / count;
 
         }
+
         // variance = [sumSquares - (sum²/N)] / (N-1)
         // standard deviation = sqrt(variance)
         public double getStandardDeviation() {
-            if (count <= 1) return 0.0;
+            if (count <= 1)
+                return 0.0;
             double variance = (sumSquares - (sum * sum) / count) / (count - 1);
             return Math.sqrt(variance);
         }
-        
+
         public int getCount() {
             return count;
         }
@@ -190,22 +192,20 @@ public class ClientMenu implements Runnable {
         String fileName = "";
         try {
             System.out.println("\nArquivos encontrados na rede:");
-            System.out.println("|    | Nome            | Tamanho | Peer            |");
-            System.out.printf("| [0] %-15s | %-7s | %-15s |%n", "<Cancelar>", "", "");
+            System.out.printf("%-8s | %-20s | %-10s | %s%n", "    ", "Nome", "Tamanho", "Peer");
+            System.out.printf("[%2d] %-20s | %-10s | %s%n", 0, "<Cancelar>", "", "");
 
             int index = 1;
             for (FoundFile file : client.getFoundFiles()) {
-                System.out.printf(
-                        "| [%d] %-15s | %-7d |",
+                fileName = file.getFileName();
+                long fileSize = file.getFileSize();
+                String peers = String.join(", ", file.getPeerAddresses());
+
+                System.out.printf("[%2d] %-20s | %-10d | %s%n",
                         index,
-                        file.getFileName(),
-                        file.getFileSize());
-
-                for (String address : file.getPeerAddresses()) {
-                    System.out.printf("%-15s", address);
-                }
-                System.out.print("\n");
-
+                        fileName,
+                        fileSize,
+                        peers);
                 index++;
             }
 
@@ -222,15 +222,14 @@ public class ClientMenu implements Runnable {
                 fileName = selectedFile.getFileName();
                 LinkedList<String> destinationAddresses = selectedFile.getPeerAddresses();
                 int numOfAddresses = destinationAddresses.size();
-                int numOfParts = 1;
+
                 long fileSize = selectedFile.getFileSize();
                 int chunkSize = client.getChunkSize();
 
-                
-                while (fileSize - chunkSize >= 0) {
-                    fileSize += -chunkSize;
-                    numOfParts++;
-                }
+                // arredonda para cima o número de partes do arquivo,
+                // evita uma parte a mais se o tam for exatamente o mesmo do chunk
+
+                int numOfParts = (int) Math.ceil((double) fileSize / chunkSize);
 
                 int j = 0; // Round robin insano
 
@@ -316,8 +315,12 @@ public class ClientMenu implements Runnable {
             }
 
             int option = scanner.nextInt();
-            client.setChunkSize(option);
-            System.out.println("    Tamanho de chunk atualizado: " + option);
+            if (option <= 0) {
+                System.out.println("    Tamanho deve ser positivo!");
+            } else {
+                client.setChunkSize(option);
+                System.out.println("    Tamanho de chunk atualizado: " + option);
+            }
         } finally {
             client.getPrintLock().unlock();
         }

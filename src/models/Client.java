@@ -14,6 +14,7 @@ public class Client {
     private final File neighborsFile;
     private final File folder;
     private int chunkSize;
+    private final ReentrantLock bufferLock = new ReentrantLock();
 
     private final ReentrantLock printLock;
     private CountDownLatch responseLatch;
@@ -184,13 +185,19 @@ public class Client {
     }
 
     public void addFileChunk(Chunk newChunk) {
-        int index = 0;
-        for (Chunk chunk : fileBuffer) {
-            if (newChunk.getPart() < chunk.getPart()) {
-                break;
+        bufferLock.lock();
+        try {
+            fileBuffer.removeIf(chunk -> chunk.getPart() == newChunk.getPart());
+
+            int index = 0;
+            for (Chunk chunk : fileBuffer) {
+                if (newChunk.getPart() < chunk.getPart())
+                    break;
+                index++;
             }
-            index++;
+            fileBuffer.add(index, newChunk);
+        } finally {
+            bufferLock.unlock();
         }
-        fileBuffer.add(index, newChunk);
     }
 }
