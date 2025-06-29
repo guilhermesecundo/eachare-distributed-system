@@ -295,6 +295,10 @@ public class MessageListener implements Runnable {
             return;   
         }
         
+        
+        // aqui eh O(n log n), nao tem jeito
+
+        client.getFileBuffer().sort((c1, c2) -> Integer.compare(c1.getPart(), c2.getPart()));
         client.completeDownload(); // registra antes de escrever o arquivo
 
         String fileName = parts[3];

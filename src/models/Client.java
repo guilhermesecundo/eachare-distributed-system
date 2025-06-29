@@ -187,15 +187,10 @@ public class Client {
     public void addFileChunk(Chunk newChunk) {
         bufferLock.lock();
         try {
-            fileBuffer.removeIf(chunk -> chunk.getPart() == newChunk.getPart());
 
-            int index = 0;
-            for (Chunk chunk : fileBuffer) {
-                if (newChunk.getPart() < chunk.getPart())
-                    break;
-                index++;
-            }
-            fileBuffer.add(index, newChunk);
+            fileBuffer.removeIf(chunk -> chunk.getPart() == newChunk.getPart());
+            fileBuffer.add(newChunk);
+
         } finally {
             bufferLock.unlock();
         }

@@ -233,7 +233,7 @@ public class ClientMenu implements Runnable {
 
                 int j = 0; // Round robin insano
 
-                client.startDownload(chunkSize, numOfAddresses, fileSize);
+                client.startDownload(chunkSize, numOfAddresses, fileSize); // inicia a medição de tempo do download
                 client.setTotalFileParts(numOfParts);
 
                 System.out.println("    arquivo escolhido " + selectedFile.getFileName());
@@ -288,11 +288,11 @@ public class ClientMenu implements Runnable {
                 statsMap.computeIfAbsent(key, k -> new SummaryMetrics()).add(stat.getDownloadTime());
             }
 
-            System.out.println("\nTam. chunk | N peers | Tam. arquivo | N | Tempo [s] | Desvio");
+            System.out.println("\n  Tam. chunk | N peers | Tam. arquivo | N | Tempo [s] | Desvio");
             for (Map.Entry<String, SummaryMetrics> entry : statsMap.entrySet()) {
                 String[] keys = entry.getKey().split("\\|");
                 SummaryMetrics agg = entry.getValue();
-                System.out.printf("%-10s | %-7s | %-12s | %-2d | %-9.6f | %-9.6f\n",
+                System.out.printf(  "%-10s | %-7s | %-12s | %-2d | %-9.6f | %-9.6f\n",
                         keys[0], keys[1], keys[2],
                         agg.getCount(),
                         agg.getAverage(),
